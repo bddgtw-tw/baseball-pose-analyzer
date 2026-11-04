@@ -57,6 +57,13 @@
       box-shadow:0 8px 28px rgba(0,0,0,.35); pointer-events:auto;
     }
     .floating-playback.hidden { display:none; }
+    /* Avoid iPhone double-tap zoom on buttons, without disabling pinch-to-zoom globally. */
+    .floating-playback button, .floating-playback-row, .floating-speed-row,
+    #btnLoop, .annotation-tool, #clearAnnotations, #btnSnapshot, #btnExportVideo {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #scrubber { touch-action: pan-x; min-height: 28px; accent-color: #d8ff45; }
     .floating-playback-row, .floating-speed-row {
       display:flex; align-items:center; justify-content:center; gap:5px;
       max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
@@ -434,6 +441,8 @@
     let loopEnabled = false;
     let fps = 30; // default estimated fps
     let frameDuration = 1 / fps;
+    let pendingSeekTime = null;
+    let isScrubbing = false;
     let animationFrameId = null;
     let currentPoseLandmarks = null;
     let isProcessingPose = false;
@@ -612,7 +621,9 @@
       currentTimeText.textContent = curTime.toFixed(2) + "s";
       timeDisplay.textContent = formatTime(curTime);
       if (video.duration) {
-        scrubber.value = (curTime / video.duration) * 100;
+        if (!isScrubbing && pendingSeekTime === null) {
+          scrubber.value = (curTime / video.duration) * 100;
+        }
       }
     }
 
@@ -741,16 +752,44 @@
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms}`;
     }
 
-    // Step by N frames (positive or negative)
-    function stepFrame(frameDelta) {
+    // Frame stepping and draggable timeline use one seek-and-redraw path.
+    // Source FPS is not available from HTMLVideoElement; 30fps is an estimate.
+    function seekToTime(targetTime) {
+      if (video.srcObject) {
+        statusText.textContent = '即時鏡頭無法逐格跳轉，請匯入影片';
+        return;
+      }
+      if (!Number.isFinite(video.duration) || video.duration <= 0) {
+        statusText.textContent = '請先載入影片';
+        return;
+      }
       pauseVideo();
-      const newTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + frameDelta * frameDuration));
-      video.currentTime = newTime;
-      video.onseeked = () => {
-        processCurrentVideoFrame();
-        video.onseeked = null;
-      };
+      const desiredTime = Math.max(0, Math.min(video.duration, targetTime));
+      pendingSeekTime = desiredTime;
+      currentPoseLandmarks = null;
+      video.currentTime = desiredTime;
+      timeDisplay.textContent = formatTime(desiredTime);
+      currentTimeText.textContent = desiredTime.toFixed(2) + 's';
+      currentFrameText.textContent = Math.round(desiredTime * fps);
+      scrubber.value = String((desiredTime / video.duration) * 100);
     }
+
+    function stepFrame(frameDelta) {
+      const base = pendingSeekTime === null ? video.currentTime : pendingSeekTime;
+      seekToTime(base + frameDelta * frameDuration);
+    }
+
+    // Decode/seek events are the reliable time to repaint on iOS Safari.
+    video.addEventListener('seeked', () => {
+      // If another target is pending, do not overwrite it with stale seeks.
+      if (pendingSeekTime !== null && Math.abs(video.currentTime - pendingSeekTime) > frameDuration * 1.5) return;
+      pendingSeekTime = null;
+      renderCurrentFrame();
+      processCurrentVideoFrame();
+    });
+    video.addEventListener('loadeddata', () => {
+      if (!isPlaying) renderCurrentFrame();
+    });
 
     function playVideo() {
       if (!video.srcObject) {
@@ -780,8 +819,9 @@
       btnPlayPause.classList.replace('hover:bg-amber-500', 'hover:bg-blue-500');
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
-      processCurrentVideoFrame();
+      if (!video.seeking) processCurrentVideoFrame();
     }
 
     // Adapt the stage to the source video's orientation without cropping the athlete.
@@ -888,12 +928,14 @@
     btnPrev5.addEventListener('click', () => stepFrame(-5));
     btnNext5.addEventListener('click', () => stepFrame(5));
 
-    // Scrubber interaction
+    // Input fires continuously while finger or mouse drags the progress bar.
+    scrubber.addEventListener('pointerdown', () => { isScrubbing = true; });
+    scrubber.addEventListener('pointerup', () => { isScrubbing = false; });
+    scrubber.addEventListener('pointercancel', () => { isScrubbing = false; });
+    scrubber.addEventListener('change', () => { isScrubbing = false; });
     scrubber.addEventListener('input', () => {
-      pauseVideo();
-      if (video.duration) {
-        video.currentTime = (scrubber.value / 100) * video.duration;
-        processCurrentVideoFrame();
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        seekToTime(Number(scrubber.value) / 100 * video.duration);
       }
     });
 
