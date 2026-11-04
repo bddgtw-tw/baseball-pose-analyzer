@@ -49,20 +49,34 @@
     .video-landscape { aspect-ratio:16 / 9!important; }
     .floating-playback {
       position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-      z-index:22; max-width:calc(100% - 16px); display:flex; align-items:center;
-      gap:6px; padding:8px; border-radius:14px;
+      z-index:22; max-width:calc(100% - 16px); width:max-content;
+      display:flex; flex-direction:column; align-items:center;
+      gap:5px; padding:7px; border-radius:14px;
       background:rgba(6,16,23,.86); border:1px solid rgba(255,255,255,.16);
       backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-      box-shadow:0 8px 28px rgba(0,0,0,.35); overflow-x:auto;
-      scrollbar-width:none; white-space:nowrap; pointer-events:auto;
+      box-shadow:0 8px 28px rgba(0,0,0,.35); pointer-events:auto;
     }
     .floating-playback.hidden { display:none; }
-    .floating-playback::-webkit-scrollbar { display:none; }
+    .floating-playback-row, .floating-speed-row {
+      display:flex; align-items:center; justify-content:center; gap:5px;
+      max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
+    }
+    .floating-playback-row::-webkit-scrollbar, .floating-speed-row::-webkit-scrollbar { display:none; }
     .floating-playback button { flex:0 0 auto; }
+    .floating-speed-row { padding-top:5px; border-top:1px solid rgba(255,255,255,.14); }
+    .floating-speed-label { color:#a8bac8; font-size:11px; padding:0 5px; flex:0 0 auto; }
+    .floating-speed-row .speed-btn {
+      min-height:30px; padding:5px 10px; font-size:11px;
+      border-radius:7px; color:#cbd5e1; background:#253347;
+    }
+    .floating-speed-row .speed-btn.bg-blue-600 {
+      background:#d8ff45!important; color:#0a1512!important;
+    }
     @media (max-width:760px) {
-      .floating-playback { bottom:8px; padding:5px; gap:4px; width:max-content; }
-      .floating-playback button { padding:8px 9px; min-height:36px; font-size:11px; }
-
+      .floating-playback { bottom:8px; padding:5px; gap:3px; }
+      .floating-playback-row, .floating-speed-row { justify-content:flex-start; gap:4px; }
+      .floating-playback-row button { padding:8px 9px; min-height:36px; font-size:11px; }
+      .floating-speed-row .speed-btn { min-height:30px; padding:5px 8px; }
       main { padding:12px 10px 88px!important; }
       .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
       .motion-intro p { margin-top:8px; font-size:.84rem; }
@@ -172,6 +186,7 @@
         </div>
           <!-- Floating Playback Buttons -->
           <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
+            <div class="floating-playback-row">
             <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">⏮ -5幀</button>
             <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
               <span>◀ -1 格</span>
@@ -184,6 +199,15 @@
               <span>+1 格 ▶</span>
             </button>
             <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">+5幀 ⏭</button>
+            </div>
+            <div class="floating-speed-row" role="group" aria-label="播放速度">
+              <span class="floating-speed-label">速度</span>
+              <button type="button" class="speed-btn" data-speed="0.1">0.1x</button>
+              <button type="button" class="speed-btn" data-speed="0.25">0.25x</button>
+              <button type="button" class="speed-btn" data-speed="0.5">0.5x</button>
+              <button type="button" class="speed-btn" data-speed="0.75">0.75x</button>
+              <button type="button" class="speed-btn bg-blue-600 text-white font-medium" data-speed="1.0" aria-pressed="true">1.0x</button>
+            </div>
           </div>
 
       </div>
@@ -208,15 +232,6 @@
 
         <!-- Action Buttons Bar -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-          <!-- Speed Toggles -->
-          <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-            <span class="text-[10px] text-slate-400 px-1 font-medium">慢速:</span>
-            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.1">0.1x</button>
-            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.25">0.25x</button>
-            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.5">0.5x</button>
-            <button class="speed-btn px-2 py-0.5 rounded text-xs bg-blue-600 text-white font-medium" data-speed="1.0">1.0x</button>
-          </div>
-
           <!-- Tools (Screenshot / Video Export) -->
           <div class="flex items-center gap-1.5">
             <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition active:scale-95 flex items-center gap-1 shadow-sm" title="下載當前高解析度截圖">
