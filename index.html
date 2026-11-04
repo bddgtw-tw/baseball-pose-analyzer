@@ -82,6 +82,7 @@
     .floating-speed-row .speed-btn.bg-blue-600 {
       background:#d8ff45!important; color:#0a1512!important;
     }
+    .mobile-source-actions { display:none; }
     @media (max-width:760px) {
       .floating-playback { bottom:8px; padding:5px; gap:3px; }
       .floating-playback-row, .floating-speed-row { justify-content:flex-start; gap:4px; }
@@ -95,14 +96,26 @@
       header .max-w-7xl { flex-wrap:nowrap; overflow-x:auto; }
       header .max-w-7xl > div:first-child { min-width:max-content; }
       header .max-w-7xl > div:last-child { margin-left:auto; min-width:max-content; }
-      header h1 { font-size:1rem!important; }
-      header .w-10 { width:32px!important; height:32px!important; }
+      header { padding:8px 12px!important; }
+      header > .max-w-7xl { gap:0!important; }
+      header h1 { font-size:clamp(.84rem,3.6vw,1rem)!important; gap:6px!important; white-space:nowrap; }
+      header .w-10 { width:28px!important; height:28px!important; min-width:28px!important; }
+      header .w-10::after { font-size:1rem!important; }
+      header .max-w-7xl > div:last-child { display:none!important; }
+      #appVersion { font-size:10px!important; padding:2px 5px!important; border-radius:6px!important; }
+      .mobile-source-actions { display:flex; align-items:center; gap:7px; }
+      .mobile-source-actions > * { min-height:40px; display:flex; align-items:center; justify-content:center; border-radius:9px; font-size:12px; font-weight:700; padding:8px 11px; white-space:nowrap; }
+      .mobile-source-primary { background:var(--lime); color:#08140e; flex:1; cursor:pointer; }
+      .mobile-source-secondary { background:#1b2d29; color:var(--ink); cursor:pointer; border:1px solid var(--line); }
+      .mobile-source-actions button { touch-action:manipulation; }
+      main { padding-top:8px!important; }
+
       .stage-track { gap:5px; position:sticky; top:62px; z-index:18; padding:6px 0; background:var(--ground); }
       .stage-track button { padding:8px 6px; font-size:.7rem; }
       .video-portrait { width:min(100%,420px); margin-inline:auto; }
       .flex.flex-wrap.items-center.justify-between { display:grid!important; grid-template-columns:1fr; }
       .flex.flex-wrap.items-center.justify-between > div { justify-content:center; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { position:sticky; bottom:8px; z-index:25; background:rgba(13,26,24,.98)!important; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { position:static; bottom:auto; z-index:auto; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:first-child { order:0; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) { border-top:0!important; padding-top:0!important; display:flex; justify-content:center; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) > div:nth-child(2) { display:none; }
@@ -135,7 +148,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.0</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.1</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -157,16 +170,17 @@
     </div>
   </header>
 
-  <section class="max-w-7xl mx-auto w-full px-6 pt-8 motion-intro">
-    <div><h2>看看你的動作，AI 會抓到什麼</h2></div>
-    <p>上傳一段投球、打擊或跑壘影片，拖著時間軸逐格看看身體怎麼動。</p>
-  </section>
-
   <!-- Main Content Grid -->
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
 
     <!-- Left / Center: Video & Canvas Player (3 Cols) -->
     <div class="lg:col-span-3 flex flex-col gap-3">
+      <!-- Compact mobile source controls; accessible after the empty state disappears -->
+      <div class="mobile-source-actions" aria-label="影片來源">
+        <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
+        <label for="cameraInput" class="mobile-source-secondary">拍攝</label>
+        <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
+      </div>
       <!-- Video Screen Container -->
       <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
         <!-- Hidden video element -->
@@ -406,6 +420,8 @@
     const btnSnapshot = document.getElementById('btnSnapshot');
     const btnExportVideo = document.getElementById('btnExportVideo');
     const btnDemo = document.getElementById('btnDemo');
+    const btnDemoMobile = document.getElementById('btnDemoMobile');
+    btnDemoMobile.addEventListener('click', () => btnDemo.click());
     const btnCamera = document.getElementById('btnCamera');
     const statusText = document.getElementById('statusText');
     const currentFrameText = document.getElementById('currentFrameText');
