@@ -628,8 +628,16 @@
     }
 
     function playVideo() {
+      if (!video.srcObject) restorePlaybackSpeed();
       isPlaying = true;
-      video.play();
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(error => {
+          console.warn('Video playback failed:', error);
+          pauseVideo();
+          statusText.textContent = '影片無法播放，請重新匯入';
+        });
+      }
       playIcon.textContent = "⏸ 暫停";
       btnPlayPause.classList.replace('bg-blue-600', 'bg-amber-600');
       btnPlayPause.classList.replace('hover:bg-blue-500', 'hover:bg-amber-500');
@@ -737,18 +745,58 @@
       }
     });
 
-    // Speed buttons
-    speedButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        speedButtons.forEach(b => {
-          b.classList.remove('bg-blue-600', 'text-white', 'font-medium');
-          b.classList.add('text-slate-300');
-        });
-        btn.classList.add('bg-blue-600', 'text-white', 'font-medium');
-        btn.classList.remove('text-slate-300');
-        video.playbackRate = parseFloat(btn.dataset.speed);
+    // Persistent playback rate across iOS Safari play/load transitions.
+    let currentSpeed = 1.0;
+    let correctingPlaybackRate = false;
+
+    function restorePlaybackSpeed() {
+      if (video.srcObject || correctingPlaybackRate) return;
+      if (Math.abs(video.playbackRate - currentSpeed) < 0.01) return;
+      correctingPlaybackRate = true;
+      try {
+        video.playbackRate = currentSpeed;
+      } catch (error) {
+        console.warn('Playback rate restore failed:', error);
+      } finally {
+        correctingPlaybackRate = false;
+      }
+    }
+
+    function applyPlaybackSpeed(rawSpeed) {
+      const requested = Number(rawSpeed);
+      if (!Number.isFinite(requested) || requested <= 0) return;
+      if (video.srcObject) {
+        statusText.textContent = '即時鏡頭不支援變速，請匯入影片';
+        return;
+      }
+      currentSpeed = requested;
+      speedButtons.forEach(button => {
+        const selected = Math.abs(Number(button.dataset.speed) - currentSpeed) < 0.01;
+        button.classList.toggle('bg-blue-600', selected);
+        button.classList.toggle('text-white', selected);
+        button.classList.toggle('font-medium', selected);
+        button.classList.toggle('text-slate-300', !selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+      restorePlaybackSpeed();
+      if (Math.abs(video.playbackRate - currentSpeed) > 0.01) {
+        statusText.textContent = '瀏覽器可能不支援此播放速度';
+      } else {
+        statusText.textContent = '播放速度已切換至 ' + currentSpeed + 'x';
+      }
+    }
+
+    speedButtons.forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        applyPlaybackSpeed(button.dataset.speed);
       });
     });
+
+    ['play', 'playing', 'loadedmetadata'].forEach(eventName => {
+      video.addEventListener(eventName, restorePlaybackSpeed);
+    });
+    video.addEventListener('ratechange', restorePlaybackSpeed);
 
     // Toggle checkboxes
     toggleSkeleton.addEventListener('change', renderCurrentFrame);
