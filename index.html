@@ -47,7 +47,22 @@
     .result-card p { margin-top:5px; font-size:.9rem; }
     .video-portrait { aspect-ratio:9 / 16!important; max-height:min(76vh,720px); }
     .video-landscape { aspect-ratio:16 / 9!important; }
+    .floating-playback {
+      position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+      z-index:22; max-width:calc(100% - 16px); display:flex; align-items:center;
+      gap:6px; padding:8px; border-radius:14px;
+      background:rgba(6,16,23,.86); border:1px solid rgba(255,255,255,.16);
+      backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      box-shadow:0 8px 28px rgba(0,0,0,.35); overflow-x:auto;
+      scrollbar-width:none; white-space:nowrap; pointer-events:auto;
+    }
+    .floating-playback.hidden { display:none; }
+    .floating-playback::-webkit-scrollbar { display:none; }
+    .floating-playback button { flex:0 0 auto; }
     @media (max-width:760px) {
+      .floating-playback { bottom:8px; padding:5px; gap:4px; width:max-content; }
+      .floating-playback button { padding:8px 9px; min-height:36px; font-size:11px; }
+
       main { padding:12px 10px 88px!important; }
       .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
       .motion-intro p { margin-top:8px; font-size:.84rem; }
@@ -155,6 +170,22 @@
         <div id="frameBadge" class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur border border-slate-700 px-2.5 py-1 rounded-md text-[11px] font-mono text-blue-400">
           Frame: <span id="currentFrameText">0</span> / <span id="totalFramesText">0</span> (<span id="currentTimeText">0.00s</span>)
         </div>
+          <!-- Floating Playback Buttons -->
+          <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
+            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">⏮ -5幀</button>
+            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
+              <span>◀ -1 格</span>
+            </button>
+            <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1">
+              <span id="playIcon">▶ 播放</span>
+            </button>
+            <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">↻ 循環</button>
+            <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
+              <span>+1 格 ▶</span>
+            </button>
+            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">+5幀 ⏭</button>
+          </div>
+
       </div>
 
       <div class="flex flex-wrap items-center gap-2 mb-3" aria-label="畫面標記工具">
@@ -177,21 +208,6 @@
 
         <!-- Action Buttons Bar -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-          <!-- Playback Buttons -->
-          <div class="flex items-center gap-1.5">
-            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">⏮ -5幀</button>
-            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
-              <span>◀ -1 格</span>
-            </button>
-            <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1">
-              <span id="playIcon">▶ 播放</span>
-            </button>
-            <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
-              <span>+1 格 ▶</span>
-            </button>
-            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">+5幀 ⏭</button>
-          </div>
-
           <!-- Speed Toggles -->
           <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
             <span class="text-[10px] text-slate-400 px-1 font-medium">慢速:</span>
@@ -338,6 +354,8 @@
     const timeDisplay = document.getElementById('timeDisplay');
     const durationDisplay = document.getElementById('durationDisplay');
     const btnPlayPause = document.getElementById('btnPlayPause');
+    const btnLoop = document.getElementById('btnLoop');
+    const floatingPlayback = document.getElementById('floatingPlayback');
     const playIcon = document.getElementById('playIcon');
     const btnPrev1 = document.getElementById('btnPrev1');
     const btnNext1 = document.getElementById('btnNext1');
@@ -405,6 +423,7 @@
     const trunkTiltBar = document.getElementById('trunkTiltBar');
 
     let isPlaying = false;
+    let loopEnabled = false;
     let fps = 30; // default estimated fps
     let frameDuration = 1 / fps;
     let animationFrameId = null;
@@ -659,6 +678,11 @@
         src = URL.createObjectURL(fileOrUrl);
       }
 
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+      floatingPlayback.classList.remove('hidden');
       video.src = src;
       video.load();
       video.onloadedmetadata = () => {
@@ -695,7 +719,10 @@
     }
 
     function playVideo() {
-      if (!video.srcObject) restorePlaybackSpeed();
+      if (!video.srcObject) {
+        if (video.ended && Number.isFinite(video.duration)) video.currentTime = 0;
+        restorePlaybackSpeed();
+      }
       isPlaying = true;
       const playPromise = video.play();
       if (playPromise && typeof playPromise.catch === 'function') {
@@ -746,6 +773,7 @@
         video.muted = true;
         video.playsInline = true;
         dropPrompt.style.display = 'none';
+        floatingPlayback.classList.remove('hidden');
         statusText.textContent = '手機鏡頭預覽中';
         await video.play();
         isPlaying = true;
@@ -796,6 +824,29 @@
     btnPlayPause.addEventListener('click', () => {
       if (isPlaying) pauseVideo();
       else playVideo();
+    });
+    btnLoop.addEventListener('click', () => {
+      loopEnabled = !loopEnabled;
+      btnLoop.setAttribute('aria-pressed', String(loopEnabled));
+      btnLoop.classList.toggle('bg-blue-600', loopEnabled);
+      btnLoop.classList.toggle('text-white', loopEnabled);
+      btnLoop.classList.toggle('border-blue-600', loopEnabled);
+      btnLoop.classList.toggle('bg-slate-800', !loopEnabled);
+      btnLoop.classList.toggle('text-slate-200', !loopEnabled);
+      btnLoop.classList.toggle('border-slate-700', !loopEnabled);
+      btnLoop.title = loopEnabled ? '關閉循環播放' : '開啟循環播放';
+      statusText.textContent = video.srcObject ? '即時鏡頭無須循環；匯入影片後生效' :
+        (loopEnabled ? '循環播放已開啟' : '循環播放已關閉');
+    });
+    // Export installs video.onended; do not restart the video while recording.
+    video.addEventListener('ended', () => {
+      if (isExporting || video.srcObject) return;
+      if (loopEnabled && Number.isFinite(video.duration)) {
+        video.currentTime = 0;
+        playVideo();
+      } else {
+        pauseVideo();
+      }
     });
 
     btnPrev1.addEventListener('click', () => stepFrame(-1));
@@ -973,6 +1024,7 @@
     // Load Demo Video (Simulated Baseball Swing Animation Canvas)
     btnDemo.addEventListener('click', () => {
       dropPrompt.style.display = 'none';
+      floatingPlayback.classList.remove('hidden');
       statusText.textContent = "載入示範測試球員...";
       
       // Create an animated canvas video stream for testing without files
