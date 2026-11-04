@@ -30,8 +30,8 @@
     .bg-emerald-600 { background:var(--green)!important; color:#07100f!important; }
     .bg-amber-500 { background:var(--orange)!important; }
     .rounded-xl, .rounded-2xl, .rounded-lg { border-radius:14px!important; }
-    button, label[for=videoInput] { min-height:40px; transition:transform .18s ease, background .18s ease; }
-    button:hover, label[for=videoInput]:hover { transform:translateY(-1px); }
+    button, label[for=videoInput], label[for=libraryInput], label[for=cameraInput] { min-height:40px; transition:transform .18s ease, background .18s ease; }
+    button:hover, label[for=videoInput]:hover, label[for=libraryInput]:hover, label[for=cameraInput]:hover { transform:translateY(-1px); }
     code, kbd { color:var(--lime)!important; background:#172a23!important; }
     .slider::-webkit-slider-thumb { background:var(--lime); box-shadow:0 0 0 4px rgba(216,255,69,.15); }
     .motion-intro { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:16px; }
@@ -78,11 +78,14 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">手機拍攝</button>
-        <label for="videoInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
-          <span>選一段影片開始玩</span>
-          <input type="file" id="videoInput" accept="video/*" capture="environment" class="hidden">
+        <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">開啟鏡頭</button>
+        <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
+          <span>選 iPhone 膠卷</span>
         </label>
+        <button id="btnGooglePhotos" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">Google 相簿</button>
+        <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
+        <input type="file" id="libraryInput" accept="video/*" class="hidden">
+        <input type="file" id="videoInput" accept="video/*" class="hidden">
         <button id="btnDemo" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">
           先看示範
         </button>
@@ -112,7 +115,12 @@
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <div class="text-5xl mb-3 text-lime-300">⌁</div>
           <p class="text-xl font-bold text-white mb-2">把一段動作放進來</p>
-          <p class="text-sm text-slate-400 max-w-md">上傳影片，或先載入示範動作。影片只在你的瀏覽器裡分析，不會上傳。</p>
+          <p class="text-sm text-slate-400 max-w-md">可拍攝新影片、選 iPhone 膠卷，或從 Google 相簿下載後匯入。影片只在你的瀏覽器裡分析，不會上傳。</p>
+          <div class="mt-5 flex flex-wrap justify-center gap-2">
+            <label for="cameraInput" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝一段</label>
+            <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選膠卷影片</label>
+            <button id="btnGooglePhotosEmpty" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">開啟 Google 相簿</button>
+          </div>
         </div>
 
         <!-- Processing indicator badge -->
@@ -296,6 +304,10 @@
     let annotationStart = null;
     let annotationDrawing = false;
     const videoInput = document.getElementById('videoInput');
+    const cameraInput = document.getElementById('cameraInput');
+    const libraryInput = document.getElementById('libraryInput');
+    const btnGooglePhotos = document.getElementById('btnGooglePhotos');
+    const btnGooglePhotosEmpty = document.getElementById('btnGooglePhotosEmpty');
     const dropPrompt = document.getElementById('dropPrompt');
     const scrubber = document.getElementById('scrubber');
     const timeDisplay = document.getElementById('timeDisplay');
@@ -620,27 +632,47 @@
       fitAnnotationCanvas();
     });
 
-    // Mobile capture simulation: use the rear camera when the browser allows it.
+    // Open a real live camera preview. The preview is rendered through the canvas so
+    // the skeleton layer and the video never appear as a black hidden element.
     btnCamera.addEventListener('click', async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
         statusText.textContent = '請用手機瀏覽器拍攝或選擇影片';
-        videoInput.click();
+        cameraInput.click();
         return;
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
         video.srcObject = stream;
         video.classList.remove('hidden');
+        video.muted = true;
+        video.playsInline = true;
         dropPrompt.style.display = 'none';
         statusText.textContent = '手機鏡頭預覽中';
         await video.play();
         isPlaying = true;
         playIcon.textContent = '⏸ 暫停';
+        btnCamera.textContent = '關閉鏡頭';
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        fitAnnotationCanvas();
+        startPlaybackLoop();
       } catch (error) {
-        statusText.textContent = '未開啟鏡頭，改用影片匯入';
-        videoInput.click();
+        statusText.textContent = '鏡頭未開啟，請允許瀏覽器使用相機';
       }
     });
+
+    cameraInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
+    });
+    libraryInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
+    });
+    function openGooglePhotos() {
+      window.open('https://photos.google.com/', '_blank', 'noopener');
+      statusText.textContent = '請在 Google 相簿下載影片，再回到這裡選擇膠卷影片';
+    }
+    btnGooglePhotos?.addEventListener('click', openGooglePhotos);
+    btnGooglePhotosEmpty?.addEventListener('click', (event) => { event.stopPropagation(); openGooglePhotos(); });
 
     // Event Listeners
     videoInput.addEventListener('change', (e) => {
