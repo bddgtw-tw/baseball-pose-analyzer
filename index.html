@@ -470,7 +470,7 @@
           });
         }
         if (window.drawLandmarks) {
-          const bodyLandmarks = currentPoseLandmarks.map((landmark, index) => index >= 11 ? landmark : null);
+          const bodyLandmarks = currentPoseLandmarks.slice(11);
           drawLandmarks(ctx, bodyLandmarks, {
             color: '#10b981',
             fillColor: '#34d399',
