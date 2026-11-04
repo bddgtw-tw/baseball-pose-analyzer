@@ -47,7 +47,31 @@
     .result-card p { margin-top:5px; font-size:.9rem; }
     .video-portrait { aspect-ratio:9 / 16!important; max-height:min(76vh,720px); }
     .video-landscape { aspect-ratio:16 / 9!important; }
-    @media (max-width:760px) { main { padding:18px 14px!important; } .motion-intro { display:block; } .motion-intro p { margin-top:10px; } header p { display:none; } .stage-track { gap:5px; } .stage-track button { padding:8px 6px; font-size:.7rem; } .video-portrait { width:min(100%,420px); margin-inline:auto; } .flex.flex-wrap.items-center.justify-between { display:grid!important; grid-template-columns:1fr; } .flex.flex-wrap.items-center.justify-between > div { justify-content:center; } }
+    @media (max-width:760px) {
+      main { padding:12px 10px 88px!important; }
+      .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
+      .motion-intro p { margin-top:8px; font-size:.84rem; }
+      header { position:sticky; top:0; }
+      header p { display:none; }
+      header .max-w-7xl { flex-wrap:nowrap; overflow-x:auto; }
+      header .max-w-7xl > div:first-child { min-width:max-content; }
+      header .max-w-7xl > div:last-child { margin-left:auto; min-width:max-content; }
+      header h1 { font-size:1rem!important; }
+      header .w-10 { width:32px!important; height:32px!important; }
+      .stage-track { gap:5px; position:sticky; top:62px; z-index:18; padding:6px 0; background:var(--ground); }
+      .stage-track button { padding:8px 6px; font-size:.7rem; }
+      .video-portrait { width:min(100%,420px); margin-inline:auto; }
+      .flex.flex-wrap.items-center.justify-between { display:grid!important; grid-template-columns:1fr; }
+      .flex.flex-wrap.items-center.justify-between > div { justify-content:center; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { position:sticky; bottom:8px; z-index:25; background:rgba(13,26,24,.98)!important; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:first-child { order:0; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) { border-top:0!important; padding-top:0!important; display:flex; justify-content:center; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) > div:nth-child(2) { display:none; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) > div:nth-child(3) { margin-left:auto; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 button { min-height:42px; }
+      .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
+      .annotation-tool, #clearAnnotations, #annotationStatus { display:none; }
+    }
     .slider::-webkit-slider-thumb {
       appearance: none;
       width: 18px;
