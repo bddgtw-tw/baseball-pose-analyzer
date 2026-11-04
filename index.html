@@ -157,10 +157,6 @@
         </div>
       </div>
 
-      <div class="stage-track" aria-label="動作階段">
-        <button class="active" type="button">準備</button><button type="button">跨步</button><button type="button">出手</button><button type="button">收勢</button>
-      </div>
-
       <div class="flex flex-wrap items-center gap-2 mb-3" aria-label="畫面標記工具">
         <span class="text-xs text-slate-400 mr-1">畫面標記</span>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
@@ -283,13 +279,19 @@
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
-            <span>顯示彩色關節點點</span>
+            <span>顯示身體骨架</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
           </label>
-          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
-            <span>顯示即時角度數值標籤</span>
-            <input type="checkbox" id="toggleAngleLabels" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
-          </label>
+          <div class="border-t border-slate-800 pt-3">
+            <span class="text-xs font-semibold text-slate-300">影片角度（勾選才顯示）</span>
+            <div class="grid grid-cols-2 gap-2 mt-2" id="angleDisplayOptions">
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="rightElbow" checked>右肘</label>
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="leftElbow">左肘</label>
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="leftKnee" checked>左膝</label>
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="rightKnee">右膝</label>
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="trunk">軀幹傾斜</label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -350,7 +352,8 @@
     const currentTimeText = document.getElementById('currentTimeText');
     const speedButtons = document.querySelectorAll('.speed-btn');
     const toggleSkeleton = document.getElementById('toggleSkeleton');
-    const toggleAngleLabels = document.getElementById('toggleAngleLabels');
+    const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
+    const selectedAngles = () => new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
 
     function fitAnnotationCanvas() {
       const rect = annotationCanvas.getBoundingClientRect();
@@ -457,29 +460,27 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Draw Pose Landmarks if enabled
+      // Keep all 33 landmarks for calculations, but hide facial nodes (0–10).
       if (currentPoseLandmarks && toggleSkeleton.checked) {
-        // Draw Skeleton Lines
         if (window.drawConnectors) {
-          drawConnectors(ctx, currentPoseLandmarks, POSE_CONNECTIONS, {
+          const bodyConnections = POSE_CONNECTIONS.filter(([start, end]) => start >= 11 && end >= 11);
+          drawConnectors(ctx, currentPoseLandmarks, bodyConnections, {
             color: '#ef4444',
             lineWidth: Math.max(2, Math.round(canvas.width / 400))
           });
         }
-
-        // Draw Skeleton Dots
         if (window.drawLandmarks) {
-          drawLandmarks(ctx, currentPoseLandmarks, {
+          const bodyLandmarks = currentPoseLandmarks.map((landmark, index) => index >= 11 ? landmark : null);
+          drawLandmarks(ctx, bodyLandmarks, {
             color: '#10b981',
             fillColor: '#34d399',
             lineWidth: 1,
-            radius: Math.max(3, Math.round(canvas.width / 250))
+            radius: Math.max(2, Math.round(canvas.width / 250 * 0.75))
           });
         }
-
-        // Calculate and Draw Key Baseball Angles
-        updateBiomechanics(currentPoseLandmarks);
       }
+      // Numeric angles can be toggled independently of the skeleton.
+      if (currentPoseLandmarks) updateBiomechanics(currentPoseLandmarks);
 
       // Update counters
       const curTime = video.currentTime || 0;
@@ -529,32 +530,30 @@
       trunkTiltAngleText.textContent = trunkTilt + "°";
       trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
 
-      // Draw angle text on Canvas if enabled
-      if (toggleAngleLabels.checked) {
-        ctx.save();
-        ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
-        ctx.fillStyle = '#60a5fa';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-
-        // Draw Right Elbow Angle tag
-        if (lm[14] && lm[14].visibility > 0.5) {
-          const px = lm[14].x * w + 12;
-          const py = lm[14].y * h;
-          ctx.strokeText(`右肘: ${rElbow}°`, px, py);
-          ctx.fillText(`右肘: ${rElbow}°`, px, py);
-        }
-
-        // Draw Left Knee Angle tag
-        if (lm[25] && lm[25].visibility > 0.5) {
-          const px = lm[25].x * w + 12;
-          const py = lm[25].y * h;
-          ctx.fillStyle = '#34d399';
-          ctx.strokeText(`前膝: ${lKnee}°`, px, py);
-          ctx.fillText(`前膝: ${lKnee}°`, px, py);
-        }
-        ctx.restore();
-      }
+      // Display selected 2D projection angles only; no extra face landmarks.
+      const rightKnee = calculateAngle(lm[24], lm[26], lm[28]);
+      const angles = [
+        { id: 'rightElbow', title: '右肘', angle: rElbow, point: lm[14], color: '#60a5fa' },
+        { id: 'leftElbow', title: '左肘', angle: lElbow, point: lm[13], color: '#a5b4fc' },
+        { id: 'leftKnee', title: '左膝', angle: lKnee, point: lm[25], color: '#34d399' },
+        { id: 'rightKnee', title: '右膝', angle: rightKnee, point: lm[26], color: '#2dd4bf' },
+        { id: 'trunk', title: '軀幹', angle: trunkTilt, point: midShoulder, color: '#fbbf24' }
+      ];
+      const enabled = selectedAngles();
+      ctx.save();
+      ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      angles.forEach(item => {
+        if (!enabled.has(item.id) || !item.point || (item.point.visibility != null && item.point.visibility <= 0.5)) return;
+        const px = item.point.x * w + 12;
+        const py = item.point.y * h;
+        ctx.fillStyle = item.color;
+        const label = `${item.title}: ${item.angle}°`;
+        ctx.strokeText(label, px, py);
+        ctx.fillText(label, px, py);
+      });
+      ctx.restore();
     }
 
     // Trigger AI analysis on current video frame
@@ -798,7 +797,7 @@
 
     // Toggle checkboxes
     toggleSkeleton.addEventListener('change', renderCurrentFrame);
-    toggleAngleLabels.addEventListener('change', renderCurrentFrame);
+    angleDisplayOptions.forEach(input => input.addEventListener('change', renderCurrentFrame));
 
     // Snapshot button
     btnSnapshot.addEventListener('click', () => {
@@ -979,20 +978,7 @@
       startPlaybackLoop();
     });
 
-    // A small, thumb-friendly stage navigator makes the timeline feel like a discovery tool.
-    const stageButtons = [...document.querySelectorAll('.stage-track button')];
-    const insightCopy = [
-      '先找到身體開始移動的那一格。',
-      '看看前腳落地時，身體有沒有保持穩定。',
-      '這通常是最值得留下來分享的關鍵畫面。',
-      '觀察動作完成後，身體如何停住。'
-    ];
-    stageButtons.forEach((button, index) => button.addEventListener('click', () => {
-      stageButtons.forEach(item => item.classList.remove('active'));
-      button.classList.add('active');
-      const insight = document.querySelector('.insight-card p');
-      if (insight) insight.textContent = insightCopy[index];
-    }));
+
   </script>
 </body>
 </html>
