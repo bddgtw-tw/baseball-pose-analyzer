@@ -212,13 +212,17 @@
 
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 mb-3" aria-label="畫面標記工具">
-        <span class="text-xs text-slate-400 mr-1">畫面標記</span>
+      <!-- Unified image tools directly beneath video -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
+        <span class="text-xs font-medium text-slate-300 mr-1">畫面工具</span>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">量角度</button>
         <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
-        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto">選一個工具，在畫面上拖曳</span>
+        <span class="hidden sm:block h-6 border-l border-slate-700 mx-1" aria-hidden="true"></span>
+        <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
+        <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="將整段影片燒錄骨架並匯出成新影片">下載分析影片</button>
+        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
       </div>
 
       <!-- Video Control Deck -->
@@ -230,18 +234,6 @@
           <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
         </div>
 
-        <!-- Action Buttons Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-          <!-- Tools (Screenshot / Video Export) -->
-          <div class="flex items-center gap-1.5">
-            <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition active:scale-95 flex items-center gap-1 shadow-sm" title="下載當前高解析度截圖">
-              留下這一格
-            </button>
-            <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition active:scale-95 flex items-center gap-1 shadow-sm" title="將整段影片燒錄骨架並匯出成新影片">
-              下載分析影片
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
