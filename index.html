@@ -420,7 +420,7 @@
     const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
     const selectedAngles = () => new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
     function revealPlaybackControls() {
-      revealPlaybackControls();
+      floatingPlayback.classList.remove('hidden');
       playerColumn.classList.add('landscape-controls-ready');
     }
 
