@@ -17,6 +17,8 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 #scrubber{appearance:none;background:transparent!important;height:24px}#scrubber::-webkit-slider-runnable-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;cursor:pointer}#scrubber::-moz-range-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--accent)}
+
+#ballPanel{order:4}.ball-tools{padding:16px 20px;display:grid;gap:12px}.ball-tools p,.ball-tools label{font-size:12px;line-height:1.8;color:var(--muted)}.ball-tools label{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.ball-tools select,.ball-tools input[type=number]{min-height:44px;background:#111416;border:1px solid var(--line);border-radius:6px;padding:8px;color:#edf0f2;max-width:180px}.ball-buttons{display:flex;flex-wrap:wrap;gap:6px}.ball-buttons button{padding:10px 12px;background:#29332f;color:#d6e9df;font-size:12px}.ball-buttons button[aria-pressed=true]{background:var(--accent);color:#14231c}.ball-confirm input{width:18px;height:18px;flex-shrink:0}#ballInput{touch-action:none}#ballResults{display:block;padding:12px;background:#111b16;color:#b8dfc8;border-radius:8px;font-size:13px;line-height:1.8;white-space:pre-line}#ballPoints{max-height:130px;overflow:auto;font:12px monospace;color:var(--muted);padding-left:24px;list-style:decimal}#ballPoints button{min-height:32px;background:transparent;color:#cce6d7;text-align:left;width:100%;font:inherit}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -32,7 +34,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.1</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.5.0</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -70,6 +72,7 @@
         <video id="videoEl" playsinline crossorigin="anonymous" class="hidden"></video>
         <!-- Overlay Canvas for Drawing Video + Pose Skeleton -->
         <canvas id="outputCanvas" class="w-full h-full object-contain"></canvas>
+        <canvas id="ballInput" class="absolute inset-0 w-full h-full pointer-events-none" aria-label="球路標記區"></canvas>
         <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full object-contain pointer-events-none"></canvas>
 
         <!-- Empty State Prompt -->
@@ -140,6 +143,23 @@
         <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
       </div>
 
+
+      <details id="ballPanel" class="tool-disclosure">
+        <summary>球路追蹤 · 手動標記</summary>
+        <div class="ball-tools">
+          <label>動作 <select id="ballAction"><option value="pitch">投球</option><option value="hit">打擊</option></select></label>
+          <p>鏡頭固定、側面拍攝。從出手／擊球後第一個清楚畫面開始，每前進一格點一次球心。</p>
+          <div class="ball-buttons"><button type="button" data-ball-mode="track" aria-pressed="false">點選球心</button><button type="button" data-ball-mode="ground" aria-pressed="false">標定水平線</button><button type="button" data-ball-mode="scale" aria-pressed="false">標定已知距離</button><button type="button" data-ball-mode="off" aria-pressed="true">退出標記</button></div>
+          <label>已知距離（公尺）<input id="ballMeters" type="number" min="0.001" step="any" placeholder="例如 1.0"></label>
+          <label>影片幀率（需確認）<select id="ballFps"><option value="">尚未確認</option><option>24</option><option>25</option><option>30</option><option>50</option><option>60</option><option>120</option><option>240</option></select></label>
+          <label class="ball-confirm"><input id="ballTimeConfirmed" type="checkbox">我已確認幀率，影片為原速時間，距離標尺與球路位於同一平面</label>
+          <div class="ball-buttons"><button type="button" id="ballUndo">撤銷上一球點</button><button type="button" id="ballClear">重設球路與校正</button></div>
+          <p id="ballStatus" role="status" aria-live="polite">先載入影片，再開啟點選球心。</p>
+          <ol id="ballPoints"></ol>
+          <output id="ballResults">尚無球路資料</output>
+          <p>角度是畫面投影仰角。速度是最早兩個標記間的平面平均速度，僅作初速近似，不是雷達測速。斜拍、球朝鏡頭移動或慢動作影片不適用。</p>
+        </div>
+      </details>
       <div id="exportTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3" aria-label="匯出工具">
         <div class="control-section-title">匯出工具</div>
         <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
@@ -359,6 +379,7 @@
     annotationCanvas.addEventListener('pointermove', drawAnnotation);
     annotationCanvas.addEventListener('pointerup', event => { drawAnnotation(event); annotationDrawing = false; });
     document.querySelectorAll('.annotation-tool').forEach(tool => tool.addEventListener('click', () => {
+      setBallMode('off');
       annotationTool = annotationTool === tool.dataset.tool ? null : tool.dataset.tool;
       annotationCanvas.style.pointerEvents = annotationTool ? 'auto' : 'none';
       document.querySelectorAll('.annotation-tool').forEach(item => item.classList.remove('bg-lime-300', 'text-slate-950'));
@@ -427,7 +448,7 @@
       statusText.textContent = framingLocked ? '人物取景已鎖定' : '人物取景可調整';
     });
     canvas.addEventListener('pointerdown', event => {
-      if (framingLocked || frameZoom <= 1 || annotationTool || isExporting) return;
+      if (framingLocked || frameZoom <= 1 || annotationTool || ballMode !== 'off' || isExporting) return;
       frameDrag = { id:event.pointerId, x:event.clientX, y:event.clientY, px:framePanX, py:framePanY };
       canvas.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -621,6 +642,7 @@
       }
       // Numeric angles can be toggled independently of the skeleton.
       if (currentPoseLandmarks) updateBiomechanics(currentPoseLandmarks);
+      drawBallOverlay();
       ctx.restore();
 
       // Update counters
@@ -750,6 +772,7 @@
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
       pauseVideo();
+      resetBallTracking();
       currentPoseLandmarks = null;
       lastPaintedVideoTime = -1;
       dropPrompt.style.display = 'none';
@@ -879,6 +902,7 @@
     // Open a real live camera preview. The preview is rendered through the canvas so
     // the skeleton layer and the video never appear as a black hidden element.
     btnCamera.addEventListener('click', async () => {
+      resetBallTracking();
       if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
@@ -1163,7 +1187,7 @@
 
     // Keyboard Shortcuts (Space, ArrowLeft, ArrowRight)
     window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT') return;
+      if (['INPUT','SELECT','BUTTON','TEXTAREA','SUMMARY'].includes(e.target.tagName) || e.target.isContentEditable) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (isPlaying) pauseVideo();
@@ -1179,6 +1203,7 @@
 
     // Load Demo Video (Simulated Baseball Swing Animation Canvas)
     btnDemo.addEventListener('click', () => {
+      resetBallTracking();
       dropPrompt.style.display = 'none';
       revealPlaybackControls();
       statusText.textContent = "載入示範測試球員...";
@@ -1257,7 +1282,119 @@
     });
 
 
+    // Manual ball tracking: all geometry is stored in original image pixels.
+    let ballMode = 'off';
+    let ballPoints = [];
+    let groundPoints = [], scalePoints = [], calibrationDraft = [];
+    const ballInput = document.getElementById('ballInput');
+    const ballStatus = document.getElementById('ballStatus');
+    const ballResults = document.getElementById('ballResults');
+    function setBallMode(mode) {
+      ballMode = mode; calibrationDraft = [];
+      ballInput.style.pointerEvents = mode === 'off' ? 'none' : 'auto';
+      document.querySelectorAll('[data-ball-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ballMode === mode)));
+      if (mode !== 'off') {
+        pauseVideo(); annotationTool = null; annotationCanvas.style.pointerEvents = 'none';
+        document.querySelectorAll('.annotation-tool').forEach(b => { b.classList.remove('bg-lime-300','text-slate-950'); b.setAttribute('aria-pressed','false'); });
+      }
+      ballStatus.textContent = mode === 'track' ? '點選這一格的球心，再用 +1 前進；同一時間再點可修正位置。' : mode === 'ground' ? '依序點兩個地面水平參考點（由左到右）。' : mode === 'scale' ? '點選已知距離的兩端，並填入公尺數。' : '標記已關閉，可播放影片或調整取景。';
+      renderCurrentFrame();
+    }
+    function resetBallTracking() {
+      ballPoints = []; groundPoints = []; scalePoints = []; calibrationDraft = [];
+      document.getElementById('ballMeters').value = '';
+      document.getElementById('ballFps').value = '';
+      document.getElementById('ballTimeConfirmed').checked = false;
+      fps = 30; frameDuration = 1 / fps;
+      setBallMode('off'); updateBallResults();
+    }
+    function imagePointFromPointer(event) {
+      const rect = canvas.getBoundingClientRect();
+      const fit = Math.min(rect.width / canvas.width, rect.height / canvas.height);
+      const left = rect.left + (rect.width - canvas.width * fit) / 2;
+      const top = rect.top + (rect.height - canvas.height * fit) / 2;
+      const dx = (event.clientX - left) / fit, dy = (event.clientY - top) / fit;
+      if (dx < 0 || dy < 0 || dx > canvas.width || dy > canvas.height) return null;
+      const x = (dx - canvas.width * (0.5 + framePanX)) / frameZoom + canvas.width / 2;
+      const y = (dy - canvas.height * (0.5 + framePanY)) / frameZoom + canvas.height / 2;
+      return x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height ? {x,y} : null;
+    }
+    function ballMeasurements(points, ground, scale, meters, timeConfirmed) {
+      const result = {angle:null, speed:null};
+      if (points.length < 2) return result;
+      const [a,b] = points;
+      const dx=b.x-a.x, dy=b.y-a.y;
+      if (ground.length===2) {
+        let gx=ground[1].x-ground[0].x, gy=ground[1].y-ground[0].y;
+        if (gx < 0) { gx=-gx; gy=-gy; }
+        if (Math.hypot(gx,gy)>1 && Math.hypot(dx,dy)>0) result.angle=Math.atan2(gy*dx-gx*dy,Math.abs(gx*dx+gy*dy))*180/Math.PI;
+      }
+      if (timeConfirmed && scale.length===2 && Number.isFinite(meters) && meters>0 && b.t>a.t) {
+        const pixels=Math.hypot(scale[1].x-scale[0].x,scale[1].y-scale[0].y);
+        if (pixels>1) result.speed=Math.hypot(dx,dy)/pixels*meters/(b.t-a.t)*3.6;
+      }
+      return result;
+    }
+    function updateBallResults() {
+      const list=document.getElementById('ballPoints'); list.replaceChildren();
+      ballPoints.forEach((p,i)=>{
+        const li=document.createElement('li'), b=document.createElement('button'); b.type='button';
+        b.textContent=p.t.toFixed(3)+' s · 點 '+(i+1); b.addEventListener('click',()=>seekToTime(p.t)); li.append(b); list.append(li);
+      });
+      const confirmed=Boolean(document.getElementById('ballFps').value) && document.getElementById('ballTimeConfirmed').checked;
+      const result=ballMeasurements(ballPoints,groundPoints,scalePoints,Number(document.getElementById('ballMeters').value),confirmed);
+      const label=document.getElementById('ballAction').value==='hit' ? '擊球後' : '出手後';
+      ballResults.textContent='已標記 '+ballPoints.length+' 個球點'+
+        '\n'+label+'投影仰角：'+(result.angle===null?'需至少兩個球點與水平線':result.angle.toFixed(1)+'°')+
+        '\n早期區間速度：'+(result.speed===null?'需距離校正與時間確認':result.speed.toFixed(1)+' km/h（平面估算）')+
+        (ballPoints.length>=2?'\n計算區間：'+ballPoints[0].t.toFixed(3)+'–'+ballPoints[1].t.toFixed(3)+' s':'')+
+        '\n水平線 '+(groundPoints.length===2?'✓':'未標定')+' · 距離 '+(scalePoints.length===2?'✓':'未標定');
+    }
+    function drawBallOverlay() {
+      const width=Math.max(2,canvas.width/450);
+      ctx.save(); ctx.lineWidth=width; ctx.font=`bold ${Math.max(14,canvas.width/65)}px sans-serif`;
+      const line=(points,color,dashed=false)=>{
+        if (!points.length) return; ctx.strokeStyle=color;ctx.fillStyle=color;ctx.setLineDash(dashed?[width*3,width*3]:[]);
+        ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.setLineDash([]);
+        points.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,width*2,0,Math.PI*2);ctx.fill();if(color==='#ffcb78')ctx.fillText(String(i+1),p.x+width*4,p.y-width*3);});
+      };
+      line(groundPoints,'#8fbbb0',true);line(scalePoints,'#90b8ff',true);line(ballPoints,'#ffcb78');line(calibrationDraft,'#ffffff',true);
+      if(ballPoints.length>1){const a=ballPoints.at(-2),b=ballPoints.at(-1),angle=Math.atan2(b.y-a.y,b.x-a.x),size=width*7;ctx.strokeStyle='#ffcb78';ctx.beginPath();ctx.moveTo(b.x-size*Math.cos(angle-.45),b.y-size*Math.sin(angle-.45));ctx.lineTo(b.x,b.y);ctx.lineTo(b.x-size*Math.cos(angle+.45),b.y-size*Math.sin(angle+.45));ctx.stroke();}
+      ctx.restore();
+    }
+    document.querySelectorAll('[data-ball-mode]').forEach(b=>b.addEventListener('click',()=>{
+      if(isExporting || video.srcObject || !video.videoWidth || !Number.isFinite(video.duration)){ballStatus.textContent='請先匯入影片；即時鏡頭與示範串流不支援球路標記。';return;}
+      setBallMode(b.dataset.ballMode);
+    }));
+    ballInput.addEventListener('pointerdown',event=>{
+      if(ballMode==='off' || isExporting) return;
+      if(isPlaying || video.seeking || pendingSeekTime!==null){ballStatus.textContent='請先暫停並等畫面定位後，再點球心。';return;}
+      event.preventDefault();const point=imagePointFromPointer(event);if(!point)return;
+      if(ballMode==='track'){
+        const t=video.currentTime, existing=ballPoints.findIndex(p=>Math.abs(p.t-t)<0.0001);
+        const p={...point,t};if(existing>=0)ballPoints[existing]=p;else ballPoints.push(p);ballPoints.sort((a,b)=>a.t-b.t);
+      }else{
+        calibrationDraft.push(point);
+        if(calibrationDraft.length===2){
+          if(Math.hypot(calibrationDraft[1].x-calibrationDraft[0].x,calibrationDraft[1].y-calibrationDraft[0].y)<2){calibrationDraft=[];ballStatus.textContent='兩點太近，請重新標定。';return;}
+          if(ballMode==='ground')groundPoints=[...calibrationDraft];else scalePoints=[...calibrationDraft];
+          setBallMode('off');
+        }else ballStatus.textContent='已記下第一點，請點第二點。';
+      }
+      updateBallResults();renderCurrentFrame();
+    });
+    document.getElementById('ballPanel').addEventListener('toggle',event=>{if(!event.target.open)setBallMode('off');});
+    document.getElementById('ballUndo').addEventListener('click',()=>{ballPoints.pop();updateBallResults();renderCurrentFrame();});
+    document.getElementById('ballClear').addEventListener('click',resetBallTracking);
+    ['ballMeters','ballAction','ballTimeConfirmed'].forEach(id=>document.getElementById(id).addEventListener('input',updateBallResults));
+    document.getElementById('ballFps').addEventListener('change',event=>{
+      fps=Number(event.target.value)||30;frameDuration=1/fps;
+      if(Number.isFinite(video.duration)) {scrubber.max=String(Math.round(video.duration*fps));totalFramesText.textContent=Math.round(video.duration*fps);}
+      updateBallResults();renderCurrentFrame();
+    });
+
   </script>
 </body>
 </html>
+
 
