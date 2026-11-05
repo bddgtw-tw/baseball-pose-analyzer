@@ -17,6 +17,8 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 #scrubber{appearance:none;background:transparent!important;height:24px}#scrubber::-webkit-slider-runnable-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;cursor:pointer}#scrubber::-moz-range-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--accent)}
+
+#captureDialog{margin:auto;width:min(800px,calc(100% - 20px));max-height:96dvh;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:18px;background:#161c1e;color:#edf0f2}#captureDialog::backdrop{background:#030605e8}.capture-heading,.capture-options,.capture-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.capture-heading{justify-content:space-between}.capture-heading h2{font-size:17px;font-weight:600}.capture-heading button{width:44px;background:#29312e}.capture-options{margin:12px 0;font-size:12px}.capture-options label{display:flex;align-items:center;gap:8px;min-height:36px}.capture-options select{padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:#26312b;color:#e0ede6}.capture-tip{font-size:11px;line-height:1.8;color:var(--muted);margin:10px 0}#captureViewport{position:relative;background:#050807;width:100%;aspect-ratio:16/9;max-height:58dvh;margin:auto}#capturePreview{display:block;width:100%;height:100%;object-fit:contain}#captureGuide{position:absolute;pointer-events:none;inset:0;width:100%;height:100%}#captureStatus{font-size:12px;color:#c6decf;min-height:24px;margin:12px 0}.capture-actions button{padding:10px 16px;background:#2d3832;font-size:12px}#captureRecord{background:var(--accent);color:#14231c}#captureStop{background:#75423d;color:#fff}.capture-actions button:disabled{opacity:.4}#captureDialog button{touch-action:manipulation}#downloadOriginal{padding:8px 12px;font-size:12px;border:1px solid var(--line);border-radius:8px;color:var(--accent);display:inline-block;margin-top:8px}#downloadOriginal[hidden]{display:none}@media(max-height:500px) and (orientation:landscape){#captureDialog{display:none}#captureDialog[open]{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:8px}#captureViewport{grid-column:1;grid-row:2/7;max-height:72dvh}#captureDialog>.capture-heading{grid-column:1/-1}#captureDialog>.capture-options,#captureDialog>.capture-tip,#captureStatus,.capture-actions{grid-column:2;margin:0}.capture-actions{gap:6px}.capture-actions button{width:100%}}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -32,7 +34,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.1</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.0</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -53,6 +55,26 @@
     </div>
   </header>
 
+
+  <dialog id="captureDialog" aria-labelledby="captureTitle">
+    <div class="capture-heading"><h2 id="captureTitle">對位拍攝</h2><button type="button" id="captureClose" aria-label="關閉相機">✕</button></div>
+    <div class="capture-options"><label>動作 <select id="captureMode"><option value="pitch">投球</option><option value="hit">打擊</option></select></label><label><input type="checkbox" id="captureGuideToggle" checked>顯示對位框</label></div>
+    <p class="capture-tip">側面拍攝 · 鏡頭固定 · 頭、手、腳及球棒全程入鏡，四周預留空間</p>
+    <div id="captureViewport">
+      <video id="capturePreview" autoplay muted playsinline></video>
+      <svg id="captureGuide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="全身對位與動作空間參考框">
+        <rect x="8" y="7" width="84" height="84" rx="3" fill="none" stroke="#bce4cd" stroke-dasharray="3 2" stroke-width=".45"/>
+        <path d="M18 88H82" stroke="#fff" stroke-width=".6"/>
+        <g id="capturePerson" fill="none" stroke="#bce4cd" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85">
+          <ellipse cx="48" cy="25" rx="4" ry="6"/><path d="M48 32L49 56M48 37L36 43L29 31M48 37L60 31L67 19M49 56L34 68L25 86M49 56L62 73L73 86"/>
+        </g>
+        <text x="50" y="97" text-anchor="middle" fill="#e6f1e9" font-size="3">腳底基準線 · 框線僅為構圖參考</text>
+      </svg>
+    </div>
+    <p id="captureStatus" role="status" aria-live="polite">正在開啟相機…</p>
+    <div class="capture-actions"><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用手機相機</button></div>
+    <p class="capture-tip">每段最長 60 秒，錄影不含聲音、對位框及骨架。停止後在此裝置分析。</p>
+  </dialog>
   <!-- Main Content Grid -->
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
 
@@ -61,7 +83,7 @@
       <!-- Compact mobile source controls; accessible after the empty state disappears -->
       <div class="mobile-source-actions" aria-label="影片來源">
         <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
-        <label for="cameraInput" class="mobile-source-secondary">拍攝</label>
+        <button type="button" data-camera-open class="mobile-source-secondary">拍攝</button>
         <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
       </div>
       <!-- Video Screen Container -->
@@ -76,7 +98,7 @@
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
           <div class="flex flex-wrap justify-center gap-2">
-            <label for="cameraInput" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</label>
+            <button type="button" data-camera-open class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</button>
             <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
           </div>
         </div>
@@ -878,43 +900,125 @@
 
     // Open a real live camera preview. The preview is rendered through the canvas so
     // the skeleton layer and the video never appear as a black hidden element.
-    btnCamera.addEventListener('click', async () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-        video.srcObject = null;
-        isPlaying = false;
-        btnCamera.textContent = '開啟鏡頭';
-        statusText.textContent = '鏡頭已關閉';
-        return;
+    // In-page recording uses the raw camera stream; guide is a separate SVG layer.
+    const captureDialog = document.getElementById('captureDialog');
+    const capturePreview = document.getElementById('capturePreview');
+    const captureStatus = document.getElementById('captureStatus');
+    const captureRecord = document.getElementById('captureRecord');
+    const captureStop = document.getElementById('captureStop');
+    const captureClose = document.getElementById('captureClose');
+    let captureStream = null, captureRecorder = null, captureChunks = [];
+    let captureClock = null, captureStarted = 0, captureSession = 0, recordedUrl = null;
+    let captureOpening = false;
+    const originalLink = document.createElement('a');
+    originalLink.id='downloadOriginal'; originalLink.hidden=true; originalLink.textContent='下載原始錄影';
+    document.getElementById('playerColumn').append(originalLink);
+    function releaseCaptureStream() {
+      clearInterval(captureClock); captureClock=null;
+      if(captureStream) captureStream.getTracks().forEach(track=>track.stop());
+      captureStream=null; capturePreview.srcObject=null;
+    }
+    function closeCapture() {
+      if(captureRecorder && captureRecorder.state !== 'inactive') {
+        captureStatus.textContent='請先按「停止並分析」，保留這段錄影。'; return;
       }
-      if (!navigator.mediaDevices?.getUserMedia) {
-        statusText.textContent = '請用手機瀏覽器拍攝或選擇影片';
-        cameraInput.click();
-        return;
+      captureSession++; captureOpening=false; releaseCaptureStream();
+      captureDialog.close(); captureRecord.disabled=true;
+    }
+    function stopCaptureRecording() {
+      if(!captureRecorder || captureRecorder.state==='inactive') return;
+      captureStop.disabled=true; clearInterval(captureClock); captureClock=null;
+      captureStatus.textContent='正在整理錄影…'; captureRecorder.stop();
+    }
+    async function openCapture() {
+      if(isExporting) {statusText.textContent='請等匯出完成後再拍攝';return;}
+      if(captureDialog.open || captureOpening) return;
+      pauseVideo(); captureDialog.showModal(); captureOpening=true;
+      const session=++captureSession;
+      captureStatus.textContent='請允許使用相機；畫面會顯示在下方。';
+      captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
+      document.getElementById('captureNative').disabled=false;
+      if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined') {
+        captureOpening=false;captureStatus.textContent='此瀏覽器無法在網頁錄影，請改用手機相機，再匯入影片。';return;
       }
       try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-        video.srcObject = cameraStream;
-        video.classList.remove('hidden');
-        video.muted = true;
-        video.playsInline = true;
-        dropPrompt.style.display = 'none';
-        revealPlaybackControls();
-        statusText.textContent = '手機鏡頭預覽中';
-        await video.play();
-        isPlaying = true;
-        playIcon.textContent = '⏸ 暫停';
-        btnCamera.textContent = '關閉鏡頭';
-        canvas.width = video.videoWidth || 1280;
-        canvas.height = video.videoHeight || 720;
-        fitAnnotationCanvas();
-        renderCurrentFrame();
-        startPlaybackLoop();
-      } catch (error) {
-        cameraStream = null;
-        statusText.textContent = '鏡頭未開啟，請允許瀏覽器使用相機';
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
+        if(session!==captureSession || !captureDialog.open){stream.getTracks().forEach(t=>t.stop());return;}
+        captureStream=stream; capturePreview.srcObject=stream;
+        await capturePreview.play();
+        if(session!==captureSession)return;
+        const w=capturePreview.videoWidth,h=capturePreview.videoHeight;
+        const viewport=document.getElementById('captureViewport');
+        viewport.style.aspectRatio=w+' / '+h;
+        // Constrain both dimensions so the overlay and camera pixels always coincide.
+        viewport.style.width='min(100%, '+(58*w/h)+'dvh)';
+        captureRecord.disabled=false;captureOpening=false;
+        captureStatus.textContent='將球員全身對入框內，動作與揮棒範圍都要留在畫面中。';
+        stream.getVideoTracks()[0].addEventListener('ended',()=>{
+          if(captureRecorder && captureRecorder.state!=='inactive')stopCaptureRecording();
+          else {captureRecord.disabled=true;captureStatus.textContent='相機已中斷，請關閉後重新開啟。';}
+        });
+      } catch(error) {
+        if(session!==captureSession)return;
+        captureOpening=false;releaseCaptureStream();
+        captureStatus.textContent='無法開啟相機，請檢查權限，或改用手機相機。';
       }
+    }
+    captureRecord.addEventListener('click',()=>{
+      if(!captureStream || captureRecorder?.state==='recording')return;
+      try {
+        const types=['video/mp4','video/webm;codecs=vp8','video/webm'];
+        const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
+        captureRecorder=mime?new MediaRecorder(captureStream,{mimeType:mime}):new MediaRecorder(captureStream);
+        captureChunks=[];
+        captureRecorder.ondataavailable=e=>{if(e.data?.size)captureChunks.push(e.data);};
+        captureRecorder.onerror=()=>{
+          captureStatus.textContent='錄影發生錯誤，請停止後重試或改用手機相機。';
+          stopCaptureRecording();
+        };
+        captureRecorder.onstop=()=>{
+          const type=captureRecorder.mimeType||mime||'video/webm';
+          const blob=new Blob(captureChunks,{type});
+          releaseCaptureStream();captureClose.disabled=false;
+          captureRecord.disabled=true;captureStop.disabled=true;
+          document.getElementById('captureNative').disabled=false;
+          if(!blob.size){captureStatus.textContent='沒有錄到畫面，請關閉後重新拍攝。';return;}
+          if(recordedUrl)URL.revokeObjectURL(recordedUrl);
+          recordedUrl=URL.createObjectURL(blob);originalLink.href=recordedUrl;
+          originalLink.download='baseball_recording_'+Date.now()+(type.includes('mp4')?'.mp4':'.webm');
+          originalLink.hidden=false;captureDialog.close();
+          loadVideoSource(new File([blob],originalLink.download,{type}));
+          statusText.textContent='錄影完成，可慢放與逐格分析；也可下載原始錄影';
+        };
+        captureRecorder.start(250);captureStarted=performance.now();
+        captureRecord.disabled=true;captureStop.disabled=false;captureClose.disabled=true;
+        document.getElementById('captureNative').disabled=true;
+        captureStatus.textContent='錄影中 00:00 · 最長 60 秒';
+        captureClock=setInterval(()=>{
+          const seconds=Math.floor((performance.now()-captureStarted)/1000);
+          captureStatus.textContent='錄影中 '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')+' · 最長 60 秒';
+          if(seconds>=60)stopCaptureRecording();
+        },250);
+      }catch(error){captureStatus.textContent='此裝置不支援此錄影格式，請改用手機相機。';}
+    });
+    captureStop.addEventListener('click',stopCaptureRecording);
+    captureClose.addEventListener('click',closeCapture);
+    captureDialog.addEventListener('cancel',event=>{event.preventDefault();closeCapture();});
+    document.getElementById('captureNative').addEventListener('click',()=>{closeCapture();cameraInput.click();});
+    document.querySelectorAll('[data-camera-open]').forEach(button=>button.addEventListener('click',openCapture));
+    btnCamera.textContent='對位錄影';btnCamera.addEventListener('click',openCapture);
+    document.getElementById('captureGuideToggle').addEventListener('change',event=>{
+      document.getElementById('captureGuide').style.display=event.target.checked?'':'none';
+    });
+    document.getElementById('captureMode').addEventListener('change',event=>{
+      document.getElementById('capturePerson').innerHTML=event.target.value==='hit'
+        ? '<ellipse cx="48" cy="27" rx="4" ry="6"/><path d="M48 34L50 57M48 39L58 40L62 28M48 39L54 46L62 28M50 57L37 71L27 86M50 57L63 72L74 86M62 28L76 12"/>'
+        : '<ellipse cx="48" cy="25" rx="4" ry="6"/><path d="M48 32L49 56M48 37L36 43L29 31M48 37L60 31L67 19M49 56L34 68L25 86M49 56L62 73L73 86"/>';
+    });
+    window.addEventListener('pagehide',()=>{
+      captureSession++;
+      if(captureRecorder?.state==='recording'){captureRecorder.onstop=null;captureRecorder.stop();}
+      releaseCaptureStream();
     });
 
     cameraInput.addEventListener('change', (e) => {
@@ -1163,7 +1267,7 @@
 
     // Keyboard Shortcuts (Space, ArrowLeft, ArrowRight)
     window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT') return;
+      if (captureDialog.open || ['INPUT','SELECT','BUTTON','TEXTAREA','SUMMARY'].includes(e.target.tagName) || e.target.isContentEditable) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (isPlaying) pauseVideo();
@@ -1260,4 +1364,5 @@
   </script>
 </body>
 </html>
+
 
