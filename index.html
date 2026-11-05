@@ -34,7 +34,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.2</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.3</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -921,8 +921,10 @@
     document.getElementById('playerColumn').append(originalLink);
     function releaseCaptureStream() {
       clearInterval(captureClock); captureClock=null;
+      capturePreview.pause();
       if(captureStream) captureStream.getTracks().forEach(track=>track.stop());
       captureStream=null; capturePreview.srcObject=null;
+      capturePreview.removeAttribute('src'); capturePreview.load();
     }
     function closeCapture() {
       if(captureRecorder && captureRecorder.state !== 'inactive') {
@@ -1027,10 +1029,35 @@
     captureStop.addEventListener('click',stopCaptureRecording);
     captureClose.addEventListener('click',closeCapture);
     captureDialog.addEventListener('cancel',event=>{event.preventDefault();closeCapture();});
-    document.getElementById('captureNative').addEventListener('click',()=>{closeCapture();cameraInput.click();});
+    function prepareNativeCapture() {
+      if(isExporting || (captureRecorder && captureRecorder.state!=='inactive')) {
+        statusText.textContent='請先停止錄影或等匯出完成'; return false;
+      }
+      const hadWebCamera = Boolean(captureStream || captureOpening || video.srcObject);
+      captureSession++;captureOpening=false;
+      releaseCaptureStream();
+      if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
+      if(video.srcObject){video.srcObject.getTracks().forEach(track=>track.stop());video.srcObject=null;}
+      pauseVideo();
+      if(captureDialog.open)captureDialog.close();
+      captureRecord.disabled=true;captureStop.disabled=true;
+      document.getElementById('captureEnable').disabled=false;
+      return hadWebCamera;
+    }
+    document.getElementById('captureNative').addEventListener('click',()=>{
+      if(captureRecorder && captureRecorder.state!=='inactive')return;
+      prepareNativeCapture();
+      // Separate user gestures give iOS time to hand the camera back to its picker.
+      statusText.textContent='網頁相機已關閉，請再按「手機相機拍攝」或上方「拍攝」。';
+      document.querySelector('[data-native-camera]')?.focus();
+    });
     document.querySelectorAll('[data-native-camera]').forEach(button=>button.addEventListener('click',()=>{
       if(isExporting){statusText.textContent='請等匯出完成後再拍攝';return;}
-      pauseVideo();cameraInput.value='';cameraInput.click();
+      const hadWebCamera=prepareNativeCapture();
+      if(hadWebCamera){
+        statusText.textContent='已釋放網頁相機，請再按一次拍攝，開啟手機相機。';return;
+      }
+      cameraInput.value='';cameraInput.click();
     }));
     document.querySelectorAll('[data-camera-open]').forEach(button=>button.addEventListener('click',openCapture));
     btnCamera.textContent='對位錄影';btnCamera.addEventListener('click',openCapture);
@@ -1041,6 +1068,17 @@
       document.getElementById('capturePerson').innerHTML=event.target.value==='hit'
         ? '<ellipse cx="48" cy="27" rx="4" ry="6"/><path d="M48 34L50 57M48 39L58 40L62 28M48 39L54 46L62 28M50 57L37 71L27 86M50 57L63 72L74 86M62 28L76 12"/>'
         : '<ellipse cx="48" cy="25" rx="4" ry="6"/><path d="M48 32L49 56M48 37L36 43L29 31M48 37L60 31L67 19M49 56L34 68L25 86M49 56L62 73L73 86"/>';
+    });
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState!=='hidden')return;
+      captureSession++;captureOpening=false;
+      if(captureRecorder && captureRecorder.state==='recording'){
+        stopCaptureRecording();
+      } else {
+        releaseCaptureStream();
+        captureRecord.disabled=true;document.getElementById('captureEnable').disabled=false;
+        if(captureDialog.open)captureStatus.textContent='相機已暫停，返回後請按「啟動相機」。';
+      }
     });
     window.addEventListener('pagehide',()=>{
       captureSession++;
