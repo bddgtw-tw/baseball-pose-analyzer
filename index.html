@@ -12,13 +12,21 @@
   <style>
 :root{color-scheme:dark;--ground:#111416;--panel:#1a1e21;--line:#30363a;--muted:#a8b1b6;--accent:#a8d6bf}
 *{box-sizing:border-box}body{margin:0;background:var(--ground)!important;color:#edf0f2;font-family:Inter,"Noto Sans TC",system-ui,sans-serif}button,input,label{font:inherit}button,label[for]{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.4;cursor:wait}button:focus-visible,input:focus-visible,summary:focus-visible,label:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button:hover{filter:brightness(1.16)}button,input{accent-color:var(--accent)}button{min-height:44px;border-radius:8px!important;box-shadow:none!important;transition:background .15s}header{background:#111416!important;border-color:var(--line)!important;padding:18px 28px!important;position:relative!important}header .max-w-7xl{max-width:1440px}header h1{font-size:16px!important;letter-spacing:-.025em}header p{font-size:11px!important;color:var(--muted)!important;margin-top:4px}header .w-10{background:#a8d6bf!important;color:#13251d!important;border-radius:10px!important;box-shadow:none!important}header h1>span:first-child{display:none}#appVersion{color:var(--muted)!important;border-color:var(--line)!important;background:transparent!important}header label,header button{font-size:12px!important;min-height:40px;padding:10px 14px!important}main{max-width:1440px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;gap:24px!important;padding:28px!important;align-items:start}#playerColumn{grid-column:auto!important;display:flex!important;flex-direction:column;gap:0!important;min-width:0}#videoStage{order:0;aspect-ratio:16/10!important;width:100%;height:auto;max-height:72vh;min-height:280px;background:#080a0b!important;border:1px solid var(--line)!important;border-radius:14px 14px 0 0!important;box-shadow:none!important}#videoStage.video-portrait{aspect-ratio:auto!important;height:65vh}#videoEl{display:none!important}#outputCanvas{width:100%;height:100%;object-fit:contain}#annotationCanvas{touch-action:none}#outputCanvas.frame-pan-active{touch-action:none;cursor:grab}#dropPrompt{border:0!important;margin:0!important;border-radius:14px!important;background:radial-gradient(ellipse at 50% 100%,#25342e 0,transparent 65%),#171c1e!important;gap:14px;cursor:default}#dropPrompt p{font-size:clamp(22px,3vw,34px)!important;letter-spacing:-.04em;margin:0!important}#dropPrompt .empty-note{font-size:13px!important;font-weight:400;color:var(--muted);max-width:310px;line-height:1.8}#dropPrompt label{min-height:46px;font-size:13px!important;padding:12px 20px!important}#statusBadge,#frameBadge{font-family:inherit;font-size:10px;background:#111416cc!important;border-color:#ffffff15!important;max-width:60%}#statusBadge .animate-pulse{animation:none;background:var(--accent)}#frameBadge{left:auto;right:12px;top:auto;bottom:12px;max-width:none;color:#c9d2d6!important}.mobile-source-actions{display:none}#controlPanel{display:flex;flex-direction:column;gap:0;background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;overflow:hidden}#videoDeck{order:0;border:0!important;border-radius:0!important;background:transparent!important;padding:18px 20px 4px!important;box-shadow:none!important}#videoDeck .control-section-title{display:none}#floatingPlayback{order:1;background:transparent;border:0;padding:12px 16px 18px}#floatingPlayback.hidden{display:none}.floating-playback-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.floating-playback-row button{min-width:46px;font-size:12px}#floatingPlayback>.control-section-title{display:none}#btnPlayPause{min-width:110px;justify-content:center;background:var(--accent)!important;color:#14231c!important}#speedRow{display:flex;justify-content:center;gap:4px;margin-top:12px;align-items:center}#speedRow>span{font-size:11px;color:var(--muted);margin-right:8px}.speed-btn{padding:6px 10px;min-height:32px!important;font-size:11px;background:transparent;color:var(--muted)}.speed-btn[aria-pressed=true]{background:#33463c;color:#d0eadd}#videoFraming,#imageTools,#exportTools{background:transparent!important;border:0!important;border-radius:0!important;padding:16px!important;box-shadow:none!important}#videoFraming{display:flex;flex-wrap:wrap;gap:8px}#videoFraming .control-section-title,#imageTools .control-section-title,#exportTools .control-section-title{display:none}#frameZoom{appearance:auto;min-width:80px;max-width:none;flex:1;height:24px}#videoFraming>span:last-child{width:100%;font-size:11px}#imageTools{display:flex;flex-wrap:wrap;gap:6px}.annotation-tool,#clearAnnotations{display:block!important;font-size:12px}#annotationStatus{display:block!important;width:100%;font-size:11px;color:var(--muted);margin:6px 0 0}#exportTools{display:flex;gap:8px;border-top:1px solid var(--line)!important}#exportTools button{flex:1;font-size:12px;background:#29312f!important;color:#dae6df!important}#btnSnapshot{border:1px solid #42594c}details.tool-disclosure{border-top:1px solid var(--line);order:2}details.tool-disclosure summary{cursor:pointer;padding:16px 20px;font-size:12px;color:#d8dee0;min-height:48px}details.tool-disclosure summary::marker{color:var(--muted)}#exportTools{order:5}#diagnosticPanel{grid-column:auto!important;width:100%;gap:16px;max-width:none}#diagnosticPanel>.bg-slate-900{background:var(--panel)!important;border-color:var(--line)!important;box-shadow:none!important;padding:20px!important;gap:14px!important}#diagnosticPanel h2{font-size:13px}#diagnosticPanel .bg-slate-950\/70{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0 0 14px!important}#diagnosticPanel .bg-slate-950\/70 p{display:none}#diagnosticPanel [id$=Angle]{font-size:22px;color:#d2e9dc!important;font-weight:500}#diagnosticPanel [id$=Bar]{background:#769b86!important}#diagnosticPanel input[type=checkbox]{width:16px;height:16px}#diagnosticPanel label{min-height:36px}#diagnosticPanel p{line-height:1.7}#diagnosticPanel>.bg-slate-900\/60{background:transparent!important;border:0!important;padding:4px!important;line-height:1.8}.insight-card,.result-card{display:none!important}.text-slate-400{color:var(--muted)!important}.bg-blue-600{background:var(--accent)!important;color:#14231c!important}.bg-slate-800{background:#282f33!important}.control-section-title{font-size:12px;font-weight:600}#scrubber{min-height:24px;touch-action:pan-x}#timeDisplay,#durationDisplay{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}#frameBadge{font-variant-numeric:tabular-nums}.tool-disclosure[open] summary{padding-bottom:0}#workspaceNote{color:var(--muted);font-size:11px;line-height:1.7;padding:14px 4px}#workspaceNote strong{color:#d0d9d4;font-weight:500}kbd{background:#293034!important;color:#cbd7d0!important} @media(max-width:1000px){main{grid-template-columns:minmax(0,1fr) 260px!important;gap:16px!important;padding:20px!important}header{padding:16px 20px!important}header p{display:none}}
-@media(max-width:760px){header{padding:14px 16px!important}header .max-w-7xl{gap:10px}header .max-w-7xl>div:last-child{display:none}header h1{font-size:14px!important}header .w-10{width:32px;height:32px;font-size:11px}main{display:flex!important;flex-direction:column;padding:12px!important;gap:20px!important}#playerColumn{width:100%}.mobile-source-actions{display:flex;gap:8px;order:-1;margin-bottom:12px}.mobile-source-actions>*{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;text-align:center;cursor:pointer}.mobile-source-primary{flex:1;background:var(--accent);color:#14231c;font-weight:600}#videoStage{min-height:260px;aspect-ratio:4/3!important;max-height:64vh}#videoStage.video-portrait{height:60vh;min-height:300px}#floatingPlayback{padding:10px 8px 16px}.floating-playback-row{gap:4px}.floating-playback-row button{padding:8px;min-width:40px}#btnPlayPause{min-width:88px}#diagnosticPanel{width:100%}#diagnosticPanel>.bg-slate-900{display:grid;grid-template-columns:1fr 1fr;gap:16px!important}#diagnosticPanel>.bg-slate-900>div:first-child,#diagnosticPanel>.bg-slate-900>div:last-child{grid-column:1/-1}#dropPrompt .empty-note{font-size:12px!important;padding:0 16px}#frameBadge{font-size:9px}#workspaceNote{padding:12px 4px}}
+@media(max-width:760px){header{padding:14px 16px!important}header .max-w-7xl{gap:10px}header .max-w-7xl>div:first-child{display:flex}header h1{font-size:14px!important}header .w-10{width:32px;height:32px;font-size:11px}main{display:flex!important;flex-direction:column;padding:12px!important;gap:20px!important}#playerColumn{width:100%}.mobile-source-actions{display:flex;gap:8px;order:-1;margin-bottom:12px}.mobile-source-actions>*{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;text-align:center;cursor:pointer}.mobile-source-primary{flex:1;background:var(--accent);color:#14231c;font-weight:600}#videoStage{min-height:260px;aspect-ratio:4/3!important;max-height:64vh}#videoStage.video-portrait{height:60vh;min-height:300px}#floatingPlayback{padding:10px 8px 16px}.floating-playback-row{gap:4px}.floating-playback-row button{padding:8px;min-width:40px}#btnPlayPause{min-width:88px}#diagnosticPanel{width:100%}#diagnosticPanel>.bg-slate-900{display:grid;grid-template-columns:1fr 1fr;gap:16px!important}#diagnosticPanel>.bg-slate-900>div:first-child,#diagnosticPanel>.bg-slate-900>div:last-child{grid-column:1/-1}#dropPrompt .empty-note{font-size:12px!important;padding:0 16px}#frameBadge{font-size:9px}#workspaceNote{padding:12px 4px}}
 @media(max-height:500px) and (orientation:landscape){header{padding:8px 16px!important}main{grid-template-columns:minmax(0,1fr) 260px!important;display:grid!important}#videoStage,#videoStage.video-portrait{height:65vh;min-height:180px;max-height:none}#diagnosticPanel{display:flex}#diagnosticPanel>.bg-slate-900{display:flex}header .w-10{height:28px;width:28px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 #scrubber{appearance:none;background:transparent!important;height:24px}#scrubber::-webkit-slider-runnable-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;cursor:pointer}#scrubber::-moz-range-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--accent)}
 
 #captureDialog{margin:auto;width:min(800px,calc(100% - 20px));max-height:96dvh;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:18px;background:#161c1e;color:#edf0f2}#captureDialog::backdrop{background:#030605e8}.capture-heading,.capture-options,.capture-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.capture-heading{justify-content:space-between}.capture-heading h2{font-size:17px;font-weight:600}.capture-heading button{width:44px;background:#29312e}.capture-options{margin:12px 0;font-size:12px}.capture-options label{display:flex;align-items:center;gap:8px;min-height:36px}.capture-options select{padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:#26312b;color:#e0ede6}.capture-tip{font-size:11px;line-height:1.8;color:var(--muted);margin:10px 0}#captureViewport{position:relative;background:#050807;width:100%;aspect-ratio:16/9;max-height:58dvh;margin:auto}#capturePreview{display:block;width:100%;height:100%;object-fit:contain}#captureGuide{position:absolute;pointer-events:none;inset:0;width:100%;height:100%}#captureStatus{font-size:12px;color:#c6decf;min-height:24px;margin:12px 0}.capture-actions button{padding:10px 16px;background:#2d3832;font-size:12px}#captureRecord{background:var(--accent);color:#14231c}#captureStop{background:#75423d;color:#fff}.capture-actions button:disabled{opacity:.4}#captureDialog button{touch-action:manipulation}#downloadOriginal{padding:8px 12px;font-size:12px;border:1px solid var(--line);border-radius:8px;color:var(--accent);display:inline-block;margin-top:8px}#downloadOriginal[hidden]{display:none}@media(max-height:500px) and (orientation:landscape){#captureDialog{display:none}#captureDialog[open]{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:8px}#captureViewport{grid-column:1;grid-row:2/7;max-height:72dvh}#captureDialog>.capture-heading{grid-column:1/-1}#captureDialog>.capture-options,#captureDialog>.capture-tip,#captureStatus,.capture-actions{grid-column:2;margin:0}.capture-actions{gap:6px}.capture-actions button{width:100%}}
+
+/* One persistent source toolbar for every screen size. */
+.source-toolbar{display:flex!important;order:-1;align-items:center;gap:8px;margin-bottom:14px}
+.source-toolbar>button{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:10px 16px;font-size:12px;white-space:nowrap}
+.source-toolbar .mobile-source-primary{background:var(--accent);color:#14231c;font-weight:600;flex:0 1 auto}
+.source-toolbar .mobile-source-secondary{background:#1a2022;color:#e0e7e3}
+.source-toolbar>input{display:none!important}
+@media(max-width:760px){.source-toolbar .mobile-source-primary{flex:1}.source-toolbar>button{padding:10px 12px}}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -34,24 +42,13 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.3</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.4</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">開啟鏡頭</button>
-        <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
-          <span>匯入影片</span>
-        </label>
-        <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
-        <input type="file" id="libraryInput" accept="video/*" class="hidden">
-        <input type="file" id="videoInput" accept="video/*" class="hidden">
-        <button id="btnDemo" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">
-          先看示範
-        </button>
-      </div>
+
     </div>
   </header>
 
@@ -72,7 +69,7 @@
       </svg>
     </div>
     <p id="captureStatus" role="status" aria-live="polite">正在開啟相機…</p>
-    <div class="capture-actions"><button type="button" id="captureEnable">啟動相機</button><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用手機相機</button></div>
+    <div class="capture-actions"><button type="button" id="captureEnable">啟動相機</button><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用系統來源</button></div>
     <p class="capture-tip">先按「啟動相機」並允許權限；若在 LINE 等 App 內開啟，對位錄影請改用 Safari／Chrome。「×」只會關閉視窗。每段最長 60 秒，錄影不含聲音、框線及骨架。</p>
   </dialog>
   <!-- Main Content Grid -->
@@ -81,10 +78,13 @@
     <!-- Left / Center: Video & Canvas Player (3 Cols) -->
     <div id="playerColumn" class="lg:col-span-4 flex flex-col gap-3">
       <!-- Compact mobile source controls; accessible after the empty state disappears -->
-      <div class="mobile-source-actions" aria-label="影片來源">
-        <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
-        <button type="button" data-native-camera class="mobile-source-secondary">拍攝</button><button type="button" data-camera-open class="mobile-source-secondary">對位錄影</button>
-        <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
+      <div class="mobile-source-actions source-toolbar" aria-label="影片來源">
+        <button type="button" id="sourceSelect" class="mobile-source-primary">選擇影片</button>
+        <button type="button" id="btnCamera" class="mobile-source-secondary">對位錄影</button>
+        <button type="button" id="btnDemo" class="mobile-source-secondary">示範</button>
+        <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
+        <input type="file" id="libraryInput" accept="video/*" class="hidden">
+        <input type="file" id="videoInput" accept="video/*" class="hidden">
       </div>
       <!-- Video Screen Container -->
       <div id="videoStage" class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
@@ -97,10 +97,7 @@
         <!-- Empty State Prompt -->
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
-          <div class="flex flex-wrap justify-center gap-2">
-            <button type="button" data-native-camera class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">手機相機拍攝</button><button type="button" data-camera-open class="bg-slate-800 text-slate-100 text-sm px-4 py-3 rounded-lg">對位錄影</button>
-            <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
-          </div>
+
         </div>
 
         <!-- Processing indicator badge -->
@@ -331,8 +328,6 @@
     const btnSnapshot = document.getElementById('btnSnapshot');
     const btnExportVideo = document.getElementById('btnExportVideo');
     const btnDemo = document.getElementById('btnDemo');
-    const btnDemoMobile = document.getElementById('btnDemoMobile');
-    btnDemoMobile.addEventListener('click', () => btnDemo.click());
     const btnCamera = document.getElementById('btnCamera');
     const statusText = document.getElementById('statusText');
     const currentFrameText = document.getElementById('currentFrameText');
@@ -958,7 +953,7 @@
       captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
       document.getElementById('captureNative').disabled=false;
       if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined') {
-        captureOpening=false;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='此瀏覽器不支援網頁錄影，請按「改用手機相機」，或在 Safari／Chrome 開啟此頁。';return;
+        captureOpening=false;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='此瀏覽器不支援網頁錄影，請按「改用系統來源」，或在 Safari／Chrome 開啟此頁。';return;
       }
       try {
         const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
@@ -1048,18 +1043,17 @@
       if(captureRecorder && captureRecorder.state!=='inactive')return;
       prepareNativeCapture();
       // Separate user gestures give iOS time to hand the camera back to its picker.
-      statusText.textContent='網頁相機已關閉，請再按「手機相機拍攝」或上方「拍攝」。';
-      document.querySelector('[data-native-camera]')?.focus();
+      statusText.textContent='網頁相機已關閉，請按上方「選擇影片」，再選錄影或圖庫。';
+      document.getElementById('sourceSelect').focus();
     });
-    document.querySelectorAll('[data-native-camera]').forEach(button=>button.addEventListener('click',()=>{
-      if(isExporting){statusText.textContent='請等匯出完成後再拍攝';return;}
-      const hadWebCamera=prepareNativeCapture();
-      if(hadWebCamera){
-        statusText.textContent='已釋放網頁相機，請再按一次拍攝，開啟手機相機。';return;
+    document.getElementById('sourceSelect').addEventListener('click',()=>{
+      if(isExporting || (captureRecorder && captureRecorder.state!=='inactive')){
+        statusText.textContent='請先停止錄影或等匯出完成';return;
       }
-      cameraInput.value='';cameraInput.click();
-    }));
-    document.querySelectorAll('[data-camera-open]').forEach(button=>button.addEventListener('click',openCapture));
+      const hadWebCamera=prepareNativeCapture();
+      if(hadWebCamera){statusText.textContent='已釋放相機，請再按「選擇影片」挑選來源。';return;}
+      libraryInput.value='';libraryInput.click();
+    });
     btnCamera.textContent='對位錄影';btnCamera.addEventListener('click',openCapture);
     document.getElementById('captureGuideToggle').addEventListener('change',event=>{
       document.getElementById('captureGuide').style.display=event.target.checked?'':'none';
