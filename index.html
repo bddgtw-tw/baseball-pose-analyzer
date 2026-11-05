@@ -64,7 +64,7 @@
     #scrubber { touch-action: pan-x; min-height: 28px; accent-color: #d8ff45; }
     #outputCanvas.frame-pan-active { touch-action:none; cursor:grab; }
     #outputCanvas.frame-pan-active:active { cursor:grabbing; }
-    #frameZoom, #btnResetFraming, #btnClipStart, #btnClipEnd, #btnClipReset { touch-action:manipulation; }
+    #frameZoom, #btnResetFraming { touch-action:manipulation; }
     .floating-playback-row {
       display:flex; align-items:center; justify-content:center; gap:5px;
       max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
@@ -159,7 +159,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.5</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.6</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -250,20 +250,12 @@
         <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
         <span class="hidden sm:block h-6 border-l border-slate-700 mx-1" aria-hidden="true"></span>
         <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
-        <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="依起迄時間匯出目前取景與骨架的分析影片">下載選取片段</button>
+        <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載目前影片的取景與骨架分析影片">下載分析影片</button>
         <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
       </div>
 
       <!-- Video Control Deck -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
-        <!-- Clip selection reuses the existing draggable timeline. -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <span class="font-semibold text-slate-200">片段範圍</span>
-          <button type="button" id="btnClipStart" class="bg-slate-800 px-2.5 py-1.5 rounded-md">設為起點</button>
-          <button type="button" id="btnClipEnd" class="bg-slate-800 px-2.5 py-1.5 rounded-md">設為終點</button>
-          <button type="button" id="btnClipReset" class="bg-slate-800 px-2.5 py-1.5 rounded-md">清除範圍</button>
-          <span id="clipRangeText" class="text-lime-300 font-mono">整段影片</span>
-        </div>
         <!-- Scrubber Slider -->
         <div class="flex items-center gap-3">
           <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
@@ -386,10 +378,6 @@
     const frameZoomInput = document.getElementById('frameZoom');
     const frameZoomValue = document.getElementById('frameZoomValue');
     const btnResetFraming = document.getElementById('btnResetFraming');
-    const btnClipStart = document.getElementById('btnClipStart');
-    const btnClipEnd = document.getElementById('btnClipEnd');
-    const btnClipReset = document.getElementById('btnClipReset');
-    const clipRangeText = document.getElementById('clipRangeText');
     const annotationCanvas = document.getElementById('annotationCanvas');
     const annotationCtx = annotationCanvas.getContext('2d');
     let annotationTool = null;
@@ -486,8 +474,6 @@
     let framePanX = 0;
     let framePanY = 0;
     let frameDrag = null;
-    let clipStart = null;
-    let clipEnd = null;
     function clampFramePan() {
       const bound = (frameZoom - 1) / 2;
       framePanX = Math.max(-bound, Math.min(bound, framePanX));
@@ -528,30 +514,6 @@
     };
     canvas.addEventListener('pointerup', stopFrameDrag);
     canvas.addEventListener('pointercancel', stopFrameDrag);
-    function showClipRange() {
-      const dur = Number.isFinite(video.duration) ? video.duration : 0;
-      clipRangeText.textContent = dur > 0
-        ? (clipStart == null && clipEnd == null ? '整段影片' :
-          formatTime(clipStart == null ? 0 : clipStart) + ' ～ ' +
-          formatTime(clipEnd == null ? dur : clipEnd))
-        : '尚未載入影片';
-    }
-    btnClipStart.addEventListener('click', () => {
-      if (!(video.duration > 0)) return;
-      clipStart = Math.max(0, video.currentTime);
-      if (clipEnd !== null && clipStart >= clipEnd) clipEnd = null;
-      showClipRange();
-    });
-    btnClipEnd.addEventListener('click', () => {
-      if (!(video.duration > 0)) return;
-      clipEnd = Math.min(video.duration, video.currentTime);
-      if (clipStart !== null && clipEnd <= clipStart) clipStart = null;
-      showClipRange();
-    });
-    btnClipReset.addEventListener('click', () => {
-      clipStart = clipEnd = null;
-      showClipRange();
-    });
     let cameraStream = null;
 
     // Initialize MediaPipe Pose
@@ -844,8 +806,6 @@
         video.srcObject = null;
       }
       floatingPlayback.classList.remove('hidden');
-      clipStart = clipEnd = null;
-      showClipRange();
       resetFraming();
       video.src = src;
       video.load();
@@ -853,7 +813,6 @@
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         durationDisplay.textContent = formatTime(video.duration);
-        showClipRange();
         totalFramesText.textContent = Math.round(video.duration * fps);
         statusText.textContent = `解析度: ${video.videoWidth}x${video.videoHeight}`;
         video.currentTime = 0;
@@ -1141,8 +1100,8 @@
         statusText.textContent = '目前瀏覽器不支援影片錄製，請改用支援 MediaRecorder 的瀏覽器';
         return;
       }
-      const start = clipStart == null ? 0 : clipStart;
-      const end = clipEnd == null ? video.duration : clipEnd;
+      const start = 0;
+      const end = video.duration;
       if (end - start < 0.1) {
         statusText.textContent = '請選擇長度至少 0.1 秒的片段';
         return;
