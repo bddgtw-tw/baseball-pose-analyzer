@@ -559,6 +559,7 @@
       clipStart = clipEnd = null;
       showClipRange();
     });
+    let cameraStream = null;
 
     // Initialize MediaPipe Pose
     let pose = null;
@@ -825,6 +826,9 @@
     // Playback loop
     function startPlaybackLoop() {
       if (isPlaying) {
+        // Draw the live source immediately. Camera frames must not wait for
+        // MediaPipe to return before the user sees an image.
+        renderCurrentFrame();
         processCurrentVideoFrame();
         animationFrameId = requestAnimationFrame(startPlaybackLoop);
       }
@@ -958,14 +962,23 @@
     // Open a real live camera preview. The preview is rendered through the canvas so
     // the skeleton layer and the video never appear as a black hidden element.
     btnCamera.addEventListener('click', async () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+        video.srcObject = null;
+        isPlaying = false;
+        btnCamera.textContent = '開啟鏡頭';
+        statusText.textContent = '鏡頭已關閉';
+        return;
+      }
       if (!navigator.mediaDevices?.getUserMedia) {
         statusText.textContent = '請用手機瀏覽器拍攝或選擇影片';
         cameraInput.click();
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-        video.srcObject = stream;
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        video.srcObject = cameraStream;
         video.classList.remove('hidden');
         video.muted = true;
         video.playsInline = true;
@@ -979,8 +992,10 @@
         canvas.width = video.videoWidth || 1280;
         canvas.height = video.videoHeight || 720;
         fitAnnotationCanvas();
+        renderCurrentFrame();
         startPlaybackLoop();
       } catch (error) {
+        cameraStream = null;
         statusText.textContent = '鏡頭未開啟，請允許瀏覽器使用相機';
       }
     });
@@ -992,8 +1007,10 @@
       if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
     });
     function openGooglePhotos() {
-      window.open('https://photos.google.com/', '_blank', 'noopener');
-      statusText.textContent = '請在 Google 相簿下載影片，再回到這裡選擇膠卷影片';
+      // Let iOS/Android open its native media picker. Google Photos can appear
+      // there as a provider when it is installed, without a separate OAuth flow.
+      libraryInput.click();
+      statusText.textContent = '請在手機影片選取器中選擇 Google 相簿影片';
     }
     btnGooglePhotos?.addEventListener('click', openGooglePhotos);
     btnGooglePhotosEmpty?.addEventListener('click', (event) => { event.stopPropagation(); openGooglePhotos(); });
