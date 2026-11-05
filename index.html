@@ -114,6 +114,29 @@
       .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
       .annotation-tool, #clearAnnotations, #annotationStatus { display:none; }
     }
+    /* Phone landscape: use the short viewport for the player instead of leaving
+       the portrait source inside a wide letterboxed stage. */
+    @media (max-width:900px) and (orientation:landscape) {
+      body { min-height:100svh; }
+      header { position:sticky; top:0; padding:6px 12px!important; }
+      header .max-w-7xl { gap:0!important; }
+      header p, header .max-w-7xl > div:last-child { display:none!important; }
+      header h1 { font-size:.95rem!important; white-space:nowrap; }
+      header .w-10 { width:28px!important; height:28px!important; min-width:28px!important; }
+      header .w-10::after { font-size:1rem!important; }
+      main { padding:8px 12px 24px!important; gap:8px!important; }
+      .mobile-source-actions { display:flex; gap:6px; }
+      .mobile-source-actions > * { min-height:34px; padding:6px 10px; font-size:11px; }
+      .stage-track { margin-bottom:8px; }
+      .bg-black { border-radius:12px!important; }
+      .video-landscape { width:100%; max-height:calc(100svh - 126px); aspect-ratio:16 / 9!important; }
+      .video-portrait { width:auto; height:min(calc(100svh - 126px), 70vw); max-width:100%; max-height:calc(100svh - 126px); aspect-ratio:9 / 16!important; margin-inline:auto; }
+      .floating-playback { bottom:6px; padding:4px; gap:0; border-radius:10px; }
+      .floating-playback-row { gap:3px; }
+      .floating-playback-row button { min-height:32px; padding:6px 9px; font-size:11px; }
+      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
+      .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
+    }
     .slider::-webkit-slider-thumb {
       appearance: none;
       width: 18px;
@@ -138,7 +161,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.3</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.4</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
