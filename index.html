@@ -58,7 +58,7 @@
     }
     .floating-playback.hidden { display:none; }
     /* Avoid iPhone double-tap zoom on buttons, without disabling pinch-to-zoom globally. */
-    .floating-playback button, .floating-playback-row, .floating-speed-row,
+    .floating-playback button, .floating-playback-row,
     #btnLoop, .annotation-tool, #clearAnnotations, #btnSnapshot, #btnExportVideo {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -67,27 +67,17 @@
     #outputCanvas.frame-pan-active { touch-action:none; cursor:grab; }
     #outputCanvas.frame-pan-active:active { cursor:grabbing; }
     #frameZoom, #btnResetFraming, #btnClipStart, #btnClipEnd, #btnClipReset { touch-action:manipulation; }
-    .floating-playback-row, .floating-speed-row {
+    .floating-playback-row {
       display:flex; align-items:center; justify-content:center; gap:5px;
       max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
     }
-    .floating-playback-row::-webkit-scrollbar, .floating-speed-row::-webkit-scrollbar { display:none; }
+    .floating-playback-row::-webkit-scrollbar { display:none; }
     .floating-playback button { flex:0 0 auto; }
-    .floating-speed-row { padding-top:5px; border-top:1px solid rgba(255,255,255,.14); }
-    .floating-speed-label { color:#a8bac8; font-size:11px; padding:0 5px; flex:0 0 auto; }
-    .floating-speed-row .speed-btn {
-      min-height:30px; padding:5px 10px; font-size:11px;
-      border-radius:7px; color:#cbd5e1; background:#253347;
-    }
-    .floating-speed-row .speed-btn.bg-blue-600 {
-      background:#d8ff45!important; color:#0a1512!important;
-    }
     .mobile-source-actions { display:none; }
     @media (max-width:760px) {
       .floating-playback { bottom:8px; padding:5px; gap:3px; }
-      .floating-playback-row, .floating-speed-row { justify-content:flex-start; gap:4px; }
+      .floating-playback-row { justify-content:flex-start; gap:4px; }
       .floating-playback-row button { padding:8px 9px; min-height:36px; font-size:11px; }
-      .floating-speed-row .speed-btn { min-height:30px; padding:5px 8px; }
       main { padding:12px 10px 88px!important; }
       .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
       .motion-intro p { margin-top:8px; font-size:.84rem; }
@@ -148,7 +138,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.2</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.3</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -210,26 +200,18 @@
           <!-- Floating Playback Buttons -->
           <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
             <div class="floating-playback-row">
-            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">⏮ -5幀</button>
-            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
-              <span>◀ -1 格</span>
+            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">-5</button>
+            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">
+              <span>-1</span>
             </button>
             <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1">
               <span id="playIcon">▶ 播放</span>
             </button>
-            <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">↻ 循環</button>
             <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
-              <span>+1 格 ▶</span>
+              <span>+1</span>
             </button>
-            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">+5幀 ⏭</button>
-            </div>
-            <div class="floating-speed-row" role="group" aria-label="播放速度">
-              <span class="floating-speed-label">速度</span>
-              <button type="button" class="speed-btn" data-speed="0.1">0.1x</button>
-              <button type="button" class="speed-btn" data-speed="0.25">0.25x</button>
-              <button type="button" class="speed-btn" data-speed="0.5">0.5x</button>
-              <button type="button" class="speed-btn" data-speed="0.75">0.75x</button>
-              <button type="button" class="speed-btn bg-blue-600 text-white font-medium" data-speed="1.0" aria-pressed="true">1.0x</button>
+            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">+5</button>
+            <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">循環</button>
             </div>
           </div>
 
