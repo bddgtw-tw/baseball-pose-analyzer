@@ -103,10 +103,10 @@
       <!-- Video Screen Container -->
       <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
         <!-- Hidden video element -->
-        <video id="videoEl" playsinline crossorigin="anonymous" class="hidden"></video>
-        <!-- Overlay Canvas for Drawing Video + Pose Skeleton -->
-        <canvas id="outputCanvas" class="w-full h-full object-contain"></canvas>
-        <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full object-contain pointer-events-none"></canvas>
+        <video id="videoEl" playsinline crossorigin="anonymous" class="absolute inset-0 z-0 w-full h-full object-contain hidden"></video>
+        <!-- Transparent pose layer; the browser keeps decoding and presenting the video natively. -->
+        <canvas id="outputCanvas" class="absolute inset-0 z-10 w-full h-full object-contain pointer-events-none"></canvas>
+        <canvas id="annotationCanvas" class="absolute inset-0 z-20 w-full h-full object-contain pointer-events-none"></canvas>
 
         <!-- Empty State Prompt -->
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
@@ -290,6 +290,12 @@
     const video = document.getElementById('videoEl');
     const canvas = document.getElementById('outputCanvas');
     const ctx = canvas.getContext('2d');
+    const POSE_CANVAS_MAX_EDGE = 1600;
+    const POSE_INFERENCE_INTERVAL_MS = 50; // At most 20 inferences per second.
+    let lastPoseInferenceAt = 0;
+    let forcePoseAfterCurrent = false;
+    let exportCanvas = null;
+    let exportCtx = null;
     const annotationCanvas = document.getElementById('annotationCanvas');
     const annotationCtx = annotationCanvas.getContext('2d');
     let annotationTool = null;
@@ -317,6 +323,17 @@
     const speedButtons = document.querySelectorAll('.speed-btn');
     const toggleSkeleton = document.getElementById('toggleSkeleton');
     const toggleAngleLabels = document.getElementById('toggleAngleLabels');
+
+    function resizePoseCanvas() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      const scale = Math.min(1, POSE_CANVAS_MAX_EDGE / Math.max(video.videoWidth, video.videoHeight));
+      const width = Math.max(1, Math.round(video.videoWidth * scale));
+      const height = Math.max(1, Math.round(video.videoHeight * scale));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
 
     function fitAnnotationCanvas() {
       const rect = annotationCanvas.getBoundingClientRect();
@@ -413,15 +430,10 @@
     // Draw Video Frame and Pose Overlays
     function renderCurrentFrame() {
       if (!video.videoWidth || !video.videoHeight) return;
+      resizePoseCanvas();
 
-      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-      }
-
-      // Draw original video frame
+      // Keep this layer transparent; native <video> playback is independent of inference.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       // Draw Pose Landmarks if enabled
       if (currentPoseLandmarks && toggleSkeleton.checked) {
@@ -524,8 +536,15 @@
     }
 
     // Trigger AI analysis on current video frame
-    async function processCurrentVideoFrame() {
-      if (!pose || isProcessingPose || !video.videoWidth) return;
+    async function processCurrentVideoFrame(force = false) {
+      if (!pose || !video.videoWidth) return;
+      if (isProcessingPose) {
+        if (force) forcePoseAfterCurrent = true;
+        return;
+      }
+      const now = performance.now();
+      if (!force && now - lastPoseInferenceAt < POSE_INFERENCE_INTERVAL_MS) return;
+      lastPoseInferenceAt = now;
       isProcessingPose = true;
       try {
         await pose.send({ image: video });
@@ -533,13 +552,32 @@
         console.warn("Pose evaluation error:", err);
       } finally {
         isProcessingPose = false;
+        if (forcePoseAfterCurrent) {
+          forcePoseAfterCurrent = false;
+          requestAnimationFrame(() => processCurrentVideoFrame(true));
+        }
       }
     }
 
     // Playback loop
+    function drawExportFrame() {
+      if (!isExporting || !video.videoWidth || !video.videoHeight || !exportCanvas || !exportCtx) return;
+      const scale = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
+      const width = Math.max(1, Math.round(video.videoWidth * scale));
+      const height = Math.max(1, Math.round(video.videoHeight * scale));
+      if (exportCanvas.width !== width || exportCanvas.height !== height) {
+        exportCanvas.width = width;
+        exportCanvas.height = height;
+      }
+      exportCtx.clearRect(0, 0, width, height);
+      exportCtx.drawImage(video, 0, 0, width, height);
+      exportCtx.drawImage(canvas, 0, 0, width, height);
+    }
+
     function startPlaybackLoop() {
       if (isPlaying) {
         processCurrentVideoFrame();
+        if (isExporting) drawExportFrame();
         animationFrameId = requestAnimationFrame(startPlaybackLoop);
       }
     }
@@ -559,14 +597,14 @@
       video.src = src;
       video.load();
       video.onloadedmetadata = () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        resizePoseCanvas();
+        video.classList.remove('hidden');
         durationDisplay.textContent = formatTime(video.duration);
         totalFramesText.textContent = Math.round(video.duration * fps);
         statusText.textContent = `解析度: ${video.videoWidth}x${video.videoHeight}`;
         video.currentTime = 0;
         setTimeout(() => {
-          processCurrentVideoFrame();
+          processCurrentVideoFrame(true);
         }, 200);
       };
     }
@@ -586,7 +624,7 @@
       const newTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + frameDelta * frameDuration));
       video.currentTime = newTime;
       video.onseeked = () => {
-        processCurrentVideoFrame();
+        processCurrentVideoFrame(true);
         video.onseeked = null;
       };
     }
@@ -609,7 +647,7 @@
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
-      processCurrentVideoFrame();
+      processCurrentVideoFrame(true);
     }
 
     // Adapt the stage to the source video's orientation without cropping the athlete.
@@ -677,7 +715,7 @@
       pauseVideo();
       if (video.duration) {
         video.currentTime = (scrubber.value / 100) * video.duration;
-        processCurrentVideoFrame();
+        processCurrentVideoFrame(true);
       }
     });
 
@@ -701,9 +739,15 @@
     // Snapshot button
     btnSnapshot.addEventListener('click', () => {
       if (!canvas.width) return;
+      const snapshot = document.createElement('canvas');
+      snapshot.width = video.videoWidth || canvas.width;
+      snapshot.height = video.videoHeight || canvas.height;
+      const snapshotCtx = snapshot.getContext('2d');
+      if (video.videoWidth) snapshotCtx.drawImage(video, 0, 0, snapshot.width, snapshot.height);
+      snapshotCtx.drawImage(canvas, 0, 0, snapshot.width, snapshot.height);
       const link = document.createElement('a');
       link.download = `baseball_pose_frame_${currentFrameText.textContent}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = snapshot.toDataURL('image/png');
       link.click();
     });
 
@@ -726,7 +770,13 @@
       video.currentTime = 0;
       await new Promise(r => setTimeout(r, 300));
 
-      const stream = canvas.captureStream(30);
+      exportCanvas = document.createElement('canvas');
+      const initialScale = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
+      exportCanvas.width = Math.max(1, Math.round(video.videoWidth * initialScale));
+      exportCanvas.height = Math.max(1, Math.round(video.videoHeight * initialScale));
+      exportCtx = exportCanvas.getContext('2d');
+      drawExportFrame();
+      const stream = exportCanvas.captureStream(30);
       let mimeType = 'video/webm';
       if (typeof MediaRecorder !== 'undefined') {
         if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') || MediaRecorder.isTypeSupported('video/mp4')) {
@@ -765,6 +815,8 @@
         URL.revokeObjectURL(url);
 
         isExporting = false;
+        exportCanvas = null;
+        exportCtx = null;
         btnExportVideo.disabled = false;
         btnExportVideo.classList.remove('opacity-75', 'cursor-not-allowed');
         btnExportVideo.textContent = originalText;
@@ -868,6 +920,7 @@
 
       const stream = demoCanvas.captureStream(30);
       video.srcObject = stream;
+      video.classList.remove('hidden');
       video.play();
       isPlaying = true;
       playIcon.textContent = "⏸ 暫停";
