@@ -48,13 +48,11 @@
     .video-portrait { aspect-ratio:9 / 16!important; max-height:min(76vh,720px); }
     .video-landscape { aspect-ratio:16 / 9!important; }
     .floating-playback {
-      position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-      z-index:22; max-width:calc(100% - 16px); width:max-content;
+      position:relative; z-index:2; width:100%;
       display:flex; flex-direction:column; align-items:center;
-      gap:5px; padding:7px; border-radius:14px;
-      background:rgba(6,16,23,.86); border:1px solid rgba(255,255,255,.16);
-      backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-      box-shadow:0 8px 28px rgba(0,0,0,.35); pointer-events:auto;
+      gap:5px; padding:8px; border-radius:12px;
+      background:var(--panel); border:1px solid var(--line);
+      pointer-events:auto;
     }
     .floating-playback.hidden { display:none; }
     /* Avoid iPhone double-tap zoom on buttons, without disabling pinch-to-zoom globally. */
@@ -72,11 +70,11 @@
       max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
     }
     .floating-playback-row::-webkit-scrollbar { display:none; }
-    .floating-playback button { flex:0 0 auto; }
+    .floating-playback button { flex:0 0 auto; min-width:52px; }
     .mobile-source-actions { display:none; }
     @media (max-width:760px) {
-      .floating-playback { bottom:8px; padding:5px; gap:3px; }
-      .floating-playback-row { justify-content:flex-start; gap:4px; }
+      .floating-playback { padding:5px; gap:3px; }
+      .floating-playback-row { justify-content:center; gap:4px; width:100%; }
       .floating-playback-row button { padding:8px 9px; min-height:36px; font-size:11px; }
       main { padding:12px 10px 88px!important; }
       .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
@@ -131,7 +129,7 @@
       .bg-black { border-radius:12px!important; }
       .video-landscape { width:100%; max-height:calc(100svh - 126px); aspect-ratio:16 / 9!important; }
       .video-portrait { width:auto; height:min(calc(100svh - 126px), 70vw); max-width:100%; max-height:calc(100svh - 126px); aspect-ratio:9 / 16!important; margin-inline:auto; }
-      .floating-playback { bottom:6px; padding:4px; gap:0; border-radius:10px; }
+      .floating-playback { padding:4px; gap:0; border-radius:10px; }
       .floating-playback-row { gap:3px; }
       .floating-playback-row button { min-height:32px; padding:6px 9px; font-size:11px; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
@@ -161,7 +159,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.4</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.5</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -220,24 +218,18 @@
         <div id="frameBadge" class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur border border-slate-700 px-2.5 py-1 rounded-md text-[11px] font-mono text-blue-400">
           Frame: <span id="currentFrameText">0</span> / <span id="totalFramesText">0</span> (<span id="currentTimeText">0.00s</span>)
         </div>
-          <!-- Floating Playback Buttons -->
-          <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
-            <div class="floating-playback-row">
-            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">-5</button>
-            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">
-              <span>-1</span>
-            </button>
-            <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1">
-              <span id="playIcon">▶ 播放</span>
-            </button>
-            <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
-              <span>+1</span>
-            </button>
-            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">+5</button>
-            <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">循環</button>
-            </div>
-          </div>
+      </div>
 
+      <!-- Playback controls live outside the video so they never cover the athlete. -->
+      <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
+        <div class="floating-playback-row">
+          <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">-5</button>
+          <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95"><span>-1</span></button>
+          <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1"><span id="playIcon">▶ 播放</span></button>
+          <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95"><span>+1</span></button>
+          <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">+5</button>
+          <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">循環</button>
+        </div>
       </div>
 
       <!-- Reframing controls: crop only the display, not the original source. -->
