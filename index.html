@@ -40,6 +40,17 @@
     .stage-track { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:0 0 14px; }
     .stage-track button { border:0; border-radius:8px!important; background:#15251f; color:#7e9388; padding:9px 10px; text-align:left; min-height:0; font-size:.78rem; }
     .stage-track button.active { background:var(--lime); color:#0a1512; font-weight:700; }
+    .stage-track button .stage-time { display:block; min-height:1em; font-size:.66rem; opacity:.72; font-weight:500; }
+    .stage-analysis { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:12px; margin:-4px 0 14px; }
+    .stage-analysis table { width:100%; border-collapse:collapse; min-width:520px; font-variant-numeric:tabular-nums; }
+    .stage-analysis th,.stage-analysis td { border-bottom:1px solid var(--line); padding:7px 9px; text-align:center; font-size:.75rem; white-space:nowrap; }
+    .stage-analysis th:first-child { text-align:left; }
+    .stage-analysis thead th { color:var(--muted); font-weight:600; }
+    .stage-analysis tbody th { color:var(--ink); font-weight:600; }
+    .stage-analysis tbody td { color:var(--lime); font-family:ui-monospace,monospace; }
+    .stage-analysis .stage-help { color:var(--muted); font-size:.75rem; line-height:1.45; }
+    .analysis-select { min-height:38px; border:1px solid var(--line); background:#101b19; color:var(--ink); border-radius:8px; padding:6px 9px; }
+    @media (max-width:760px) { .stage-analysis { padding:10px; } .stage-track button .stage-time { font-size:.6rem; } }
     .insight-card { border-left:4px solid var(--lime); background:#15251f!important; padding:16px; }
     .insight-card strong { color:var(--lime); }
     .result-card { margin-top:16px; padding:18px; background:#d8ff45!important; color:#0a1512; border-radius:16px; }
@@ -124,12 +135,42 @@
         <!-- Frame counter badge -->
         <div id="frameBadge" class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur border border-slate-700 px-2.5 py-1 rounded-md text-[11px] font-mono text-blue-400">
           Frame: <span id="currentFrameText">0</span> / <span id="totalFramesText">0</span> (<span id="currentTimeText">0.00s</span>)
+          · <span id="fpsText">估算中（暫用 30 fps）</span> · 骨架 <span id="poseSampleTime">--</span>
         </div>
       </div>
 
-      <div class="stage-track" aria-label="動作階段">
-        <button class="active" type="button">準備</button><button type="button">跨步</button><button type="button">出手</button><button type="button">收勢</button>
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <div>
+          <h3 class="text-xs font-semibold text-slate-200">動作階段標記</h3>
+          <p class="text-[11px] text-slate-400">播放至關鍵影格後點一下記錄；已標記的階段可點擊返回。</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="motionType" class="analysis-select text-xs" aria-label="動作類型">
+            <option value="pitch">投球</option>
+            <option value="swing">打擊</option>
+          </select>
+          <button id="clearStageMarkers" type="button" class="text-xs text-slate-300 border border-slate-700 rounded-lg px-2.5 py-2">清除標記</button>
+        </div>
       </div>
+      <div class="stage-track" id="stageTrack" aria-label="動作階段標記">
+        <button class="active" type="button" data-stage-index="0"><span>準備</span><span class="stage-time">點擊標記</span></button>
+        <button type="button" data-stage-index="1"><span>跨步</span><span class="stage-time">點擊標記</span></button>
+        <button type="button" data-stage-index="2"><span>出手</span><span class="stage-time">點擊標記</span></button>
+        <button type="button" data-stage-index="3"><span>收勢</span><span class="stage-time">點擊標記</span></button>
+      </div>
+      <section class="stage-analysis" aria-labelledby="stageAnalysisTitle">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <h3 id="stageAnalysisTitle" class="text-xs font-semibold">階段角度對照</h3>
+          <span id="stageMarkerCount" class="text-[11px] text-slate-400">0 / 4 個階段</span>
+        </div>
+        <p id="stageAnalysisHelp" class="stage-help mb-2">先選影片並分析到球員，再標記各階段。數值是單鏡頭 2D 估算，用於同一支影片的階段比較。</p>
+        <div class="overflow-x-auto">
+          <table>
+            <thead><tr id="stageTableHead"></tr></thead>
+            <tbody id="stageTableBody"></tbody>
+          </table>
+        </div>
+      </section>
 
       <div class="flex flex-wrap items-center gap-2 mb-3" aria-label="畫面標記工具">
         <span class="text-xs text-slate-400 mr-1">畫面標記</span>
@@ -199,7 +240,21 @@
           <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">即時分析</span>
         </div>
 
-        <div class="insight-card"><strong>動作亮點</strong><p class="text-sm text-slate-200 mt-1">先載入影片，AI 會在這裡告訴你目前看見的重點。</p></div>
+        <div class="insight-card"><strong>觀察摘要</strong><p id="analysisSummary" class="text-sm text-slate-200 mt-1">標記動作階段後，這裡會整理可比較的角度變化；不會用單一角度替球員評分。</p></div>
+        <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label for="leadSide" class="text-xs text-slate-300">前腳側</label>
+            <select id="leadSide" class="analysis-select text-xs">
+              <option value="left">左腳</option>
+              <option value="right">右腳</option>
+            </select>
+            <span class="text-[10px] text-slate-500">依本次動作手動設定</span>
+          </div>
+          <div class="flex items-center justify-between mt-2 text-xs">
+            <span class="text-slate-400">主要關節點可見度</span>
+            <strong id="poseQuality" class="font-mono text-slate-300">等待影格</strong>
+          </div>
+        </div>
 
         <!-- Angle metric: Right Elbow -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
@@ -210,7 +265,7 @@
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div id="rightElbowBar" class="bg-blue-500 h-full w-0 transition-all duration-75"></div>
           </div>
-          <p class="text-[10px] text-slate-400 mt-1">出手前適合理想角度約 85° ~ 115°</p>
+          <p class="text-[10px] text-slate-400 mt-1">2D 影像角度；請比較同一球員、相同視角的階段變化。</p>
         </div>
 
         <!-- Angle metric: Left Elbow -->
@@ -222,7 +277,7 @@
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div id="leftElbowBar" class="bg-indigo-500 h-full w-0 transition-all duration-75"></div>
           </div>
-          <p class="text-[10px] text-slate-400 mt-1">左打/左投手臂彎曲連動檢測</p>
+          <p class="text-[10px] text-slate-400 mt-1">可與右肘及其他階段的數值對照。</p>
         </div>
 
         <!-- Angle metric: Lead Knee -->
@@ -234,7 +289,7 @@
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div id="leadKneeBar" class="bg-emerald-500 h-full w-0 transition-all duration-75"></div>
           </div>
-          <p class="text-[10px] text-slate-400 mt-1">著地到擊球應漸進伸直 (>150° 為理想煞車)</p>
+          <p class="text-[10px] text-slate-400 mt-1">前腳側可在上方切換；數值不是通用及格線。</p>
         </div>
 
         <!-- Angle metric: Hip-Shoulder Separation Proxy -->
@@ -246,7 +301,7 @@
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div id="trunkTiltBar" class="bg-amber-500 h-full w-0 transition-all duration-75"></div>
           </div>
-          <p class="text-[10px] text-slate-400 mt-1">檢視投球或擊球時頭部與脊椎穩定度</p>
+          <p class="text-[10px] text-slate-400 mt-1">單鏡頭 2D 投影角度，不能代表 3D 身體旋轉。</p>
         </div>
 
         <!-- Display Toggles -->
@@ -323,6 +378,24 @@
     const speedButtons = document.querySelectorAll('.speed-btn');
     const toggleSkeleton = document.getElementById('toggleSkeleton');
     const toggleAngleLabels = document.getElementById('toggleAngleLabels');
+    const motionTypeSelect = document.getElementById('motionType');
+    const leadSideSelect = document.getElementById('leadSide');
+    const poseQualityText = document.getElementById('poseQuality');
+    const fpsText = document.getElementById('fpsText');
+    const poseSampleTimeText = document.getElementById('poseSampleTime');
+    const stageTrack = document.getElementById('stageTrack');
+    const stageButtons = [...stageTrack.querySelectorAll('button[data-stage-index]')];
+    const clearStageMarkersButton = document.getElementById('clearStageMarkers');
+    const stageAnalysisHelp = document.getElementById('stageAnalysisHelp');
+    const stageMarkerCount = document.getElementById('stageMarkerCount');
+    const stageTableHead = document.getElementById('stageTableHead');
+    const stageTableBody = document.getElementById('stageTableBody');
+    const analysisSummary = document.getElementById('analysisSummary');
+    const stageMarkers = [null, null, null, null];
+    const stageDefinitions = {
+      pitch: ['準備', '跨步落地', '出手', '收勢'],
+      swing: ['準備', '引棒蓄力', '擊球', '收勢']
+    };
 
     function resizePoseCanvas() {
       if (!video.videoWidth || !video.videoHeight) return;
@@ -383,12 +456,55 @@
     const trunkTiltAngleText = document.getElementById('trunkTiltAngle');
     const trunkTiltBar = document.getElementById('trunkTiltBar');
 
+    const metricDefinitions = [
+      { key: 'rightElbow', label: '右肘', indices: [12, 14, 16], text: rightElbowAngleText, bar: rightElbowBar, color: '#60a5fa' },
+      { key: 'leftElbow', label: '左肘', indices: [11, 13, 15], text: leftElbowAngleText, bar: leftElbowBar, color: '#a78bfa' },
+      { key: 'leadKnee', label: '前膝', indices: null, text: leadKneeAngleText, bar: leadKneeBar, color: '#34d399' },
+      { key: 'trunkTilt', label: '軀幹傾角', indices: null, text: trunkTiltAngleText, bar: trunkTiltBar, color: '#fbbf24' }
+    ];
+
+
     let isPlaying = false;
-    let fps = 30; // default estimated fps
+    let fps = 30; // Temporary fallback until presented video frames provide an estimate.
     let frameDuration = 1 / fps;
-    let animationFrameId = null;
+    let fpsSamples = [];
+    let previousVideoFrameMeta = null;
+    let videoFrameObserverStarted = false;
+    let pendingPoseVideoTime = 0;
+    let lastPoseSampleTime = null;
+    let currentMetrics = { rightElbow: null, leftElbow: null, leadKnee: null, trunkTilt: null };
     let currentPoseLandmarks = null;
+    let currentPoseQuality = 0;
+    let animationFrameId = null;
     let isProcessingPose = false;
+
+    function observeVideoFrameRate() {
+      if (videoFrameObserverStarted || typeof video.requestVideoFrameCallback !== 'function') return;
+      videoFrameObserverStarted = true;
+      fpsSamples = [];
+      previousVideoFrameMeta = null;
+      const observe = (_now, metadata) => {
+        if (video.dataset.analysisDisabled !== 'true' && metadata?.mediaTime != null) {
+          if (previousVideoFrameMeta !== null) {
+            const delta = metadata.mediaTime - previousVideoFrameMeta;
+            if (delta > 0.003 && delta < 0.25) {
+              fpsSamples.push(1 / delta);
+              if (fpsSamples.length > 12) fpsSamples.shift();
+              if (fpsSamples.length >= 5) {
+                const sorted = [...fpsSamples].sort((a, b) => a - b);
+                fps = Math.round(sorted[Math.floor(sorted.length / 2)]);
+                frameDuration = 1 / fps;
+                fpsText.textContent = `約 ${fps} fps（估算）`;
+                if (Number.isFinite(video.duration)) totalFramesText.textContent = Math.round(video.duration * fps);
+              }
+            }
+          }
+          previousVideoFrameMeta = metadata.mediaTime;
+        }
+        video.requestVideoFrameCallback(observe);
+      };
+      video.requestVideoFrameCallback(observe);
+    }
 
     // Initialize MediaPipe Pose
     let pose = null;
@@ -404,140 +520,232 @@
         minTrackingConfidence: 0.5
       });
       pose.onResults(onPoseResults);
-      statusText.textContent = "AI 模型加載完成";
+      statusText.textContent = "姿態引擎就緒，等待球員影片";
     } catch (err) {
       console.warn("MediaPipe load error:", err);
       statusText.textContent = "AI 離線或模擬模式";
     }
 
-    // Mathematical Angle Calculator: angle between vectors AB and BC (joint B is vertex)
+    // 2D projected joint angle in canvas pixels; low-visibility points are treated as unavailable.
     function calculateAngle(a, b, c) {
-      if (!a || !b || !c) return 0;
-      const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
-      let angle = Math.abs((radians * 180.0) / Math.PI);
-      if (angle > 180.0) {
-        angle = 360.0 - angle;
-      }
-      return Math.round(angle);
+      if (!a || !b || !c) return null;
+      const points = [a, b, c];
+      if (points.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y) || (p.visibility ?? 1) < 0.5)) return null;
+      const abx = a.x - b.x, aby = a.y - b.y;
+      const cbx = c.x - b.x, cby = c.y - b.y;
+      const abLength = Math.hypot(abx, aby), cbLength = Math.hypot(cbx, cby);
+      if (abLength < 1 || cbLength < 1) return null;
+      const cosine = Math.max(-1, Math.min(1, (abx * cbx + aby * cby) / (abLength * cbLength)));
+      return Math.round(Math.acos(cosine) * 180 / Math.PI);
     }
 
-    // MediaPipe Pose Results Handler
+    function isLandmarkVisible(lm, index) {
+      const point = lm?.[index];
+      return Boolean(point && Number.isFinite(point.x) && Number.isFinite(point.y) && (point.visibility ?? 1) >= 0.5);
+    }
+
+    function pointInCanvas(lm, index) {
+      if (!isLandmarkVisible(lm, index)) return null;
+      return { x: lm[index].x * canvas.width, y: lm[index].y * canvas.height, visibility: lm[index].visibility };
+    }
+
+    function formatAngle(value) {
+      return Number.isFinite(value) ? `${Math.round(value)}°` : '—';
+    }
+
     function onPoseResults(results) {
-      currentPoseLandmarks = results.poseLandmarks || null;
+      currentPoseLandmarks = results.poseLandmarks?.length ? results.poseLandmarks : null;
+      lastPoseSampleTime = pendingPoseVideoTime;
+      poseSampleTimeText.textContent = currentPoseLandmarks ? formatTime(lastPoseSampleTime) : '--';
+      if (video.dataset.analysisDisabled === 'true') return;
+      statusText.textContent = currentPoseLandmarks
+        ? '已取得骨架樣本'
+        : '未辨識到足夠關節；請讓球員完整入鏡';
       renderCurrentFrame();
     }
 
-    // Draw Video Frame and Pose Overlays
     function renderCurrentFrame() {
       if (!video.videoWidth || !video.videoHeight) return;
       resizePoseCanvas();
-
-      // Keep this layer transparent; native <video> playback is independent of inference.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw Pose Landmarks if enabled
       if (currentPoseLandmarks && toggleSkeleton.checked) {
-        // Draw Skeleton Lines
         if (window.drawConnectors) {
           drawConnectors(ctx, currentPoseLandmarks, POSE_CONNECTIONS, {
             color: '#ef4444',
-            lineWidth: Math.max(2, Math.round(canvas.width / 400))
+            lineWidth: Math.max(2, Math.round(canvas.width / 400)),
+            visibilityMin: 0.5
           });
         }
-
-        // Draw Skeleton Dots
         if (window.drawLandmarks) {
           drawLandmarks(ctx, currentPoseLandmarks, {
             color: '#10b981',
             fillColor: '#34d399',
             lineWidth: 1,
-            radius: Math.max(3, Math.round(canvas.width / 250))
+            radius: Math.max(3, Math.round(canvas.width / 250)),
+            visibilityMin: 0.5
           });
         }
-
-        // Calculate and Draw Key Baseball Angles
-        updateBiomechanics(currentPoseLandmarks);
       }
 
-      // Update counters
+      updateBiomechanics(currentPoseLandmarks);
+
       const curTime = video.currentTime || 0;
       const curFrame = Math.round(curTime * fps);
       currentFrameText.textContent = curFrame;
-      currentTimeText.textContent = curTime.toFixed(2) + "s";
+      currentTimeText.textContent = curTime.toFixed(2) + 's';
       timeDisplay.textContent = formatTime(curTime);
-      if (video.duration) {
-        scrubber.value = (curTime / video.duration) * 100;
-      }
+      if (video.duration) scrubber.value = (curTime / video.duration) * 100;
     }
 
-    // Update Telemetry Panel & Canvas Angle Overlays
     function updateBiomechanics(lm) {
-      if (!lm) return;
-      const w = canvas.width;
-      const h = canvas.height;
+      const w = canvas.width, h = canvas.height;
+      const selectedLeadIndices = leadSideSelect.value === 'right' ? [24, 26, 28] : [23, 25, 27];
+      const required = [...new Set([11, 12, 13, 14, 15, 16, ...selectedLeadIndices, 23, 24])];
+      const visibleCount = lm ? required.filter(index => isLandmarkVisible(lm, index)).length : 0;
+      currentPoseQuality = required.length ? visibleCount / required.length : 0;
+      poseQualityText.textContent = lm
+        ? `${Math.round(currentPoseQuality * 100)}%（${visibleCount}/${required.length}）`
+        : '未偵測到球員';
+      poseQualityText.className = `font-mono ${currentPoseQuality >= 0.8 ? 'text-emerald-300' : currentPoseQuality >= 0.5 ? 'text-amber-300' : 'text-rose-300'}`;
 
-      // MediaPipe Landmarks Index:
-      // 11: left_shoulder, 12: right_shoulder
-      // 13: left_elbow, 14: right_elbow
-      // 15: left_wrist, 16: right_wrist
-      // 23: left_hip, 24: right_hip
-      // 25: left_knee, 26: right_knee
-      // 27: left_ankle, 28: right_ankle
-
-      // 1. Right Elbow Angle (12-14-16)
-      const rElbow = calculateAngle(lm[12], lm[14], lm[16]);
-      rightElbowAngleText.textContent = rElbow + "°";
-      rightElbowBar.style.width = Math.min(100, (rElbow / 180) * 100) + "%";
-
-      // 2. Left Elbow Angle (11-13-15)
-      const lElbow = calculateAngle(lm[11], lm[13], lm[15]);
-      leftElbowAngleText.textContent = lElbow + "°";
-      leftElbowBar.style.width = Math.min(100, (lElbow / 180) * 100) + "%";
-
-      // 3. Lead Knee (Check left knee 23-25-27 or right knee 24-26-28)
-      const lKnee = calculateAngle(lm[23], lm[25], lm[27]);
-      leadKneeAngleText.textContent = lKnee + "°";
-      leadKneeBar.style.width = Math.min(100, (lKnee / 180) * 100) + "%";
-
-      // 4. Spine / Trunk Tilt (Mid-Hip to Mid-Shoulder relative to vertical)
-      const midShoulder = { x: (lm[11].x + lm[12].x) / 2, y: (lm[11].y + lm[12].y) / 2 };
-      const midHip = { x: (lm[23].x + lm[24].x) / 2, y: (lm[23].y + lm[24].y) / 2 };
-      const verticalPt = { x: midHip.x, y: midHip.y - 0.5 };
-      const trunkTilt = calculateAngle(verticalPt, midHip, midShoulder);
-      trunkTiltAngleText.textContent = trunkTilt + "°";
-      trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
-
-      // Draw angle text on Canvas if enabled
-      if (toggleAngleLabels.checked) {
-        ctx.save();
-        ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
-        ctx.fillStyle = '#60a5fa';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-
-        // Draw Right Elbow Angle tag
-        if (lm[14] && lm[14].visibility > 0.5) {
-          const px = lm[14].x * w + 12;
-          const py = lm[14].y * h;
-          ctx.strokeText(`右肘: ${rElbow}°`, px, py);
-          ctx.fillText(`右肘: ${rElbow}°`, px, py);
+      if (!lm) {
+        currentMetrics = { rightElbow: null, leftElbow: null, leadKnee: null, trunkTilt: null };
+      } else {
+        const point = index => pointInCanvas(lm, index);
+        const rightElbow = calculateAngle(point(12), point(14), point(16));
+        const leftElbow = calculateAngle(point(11), point(13), point(15));
+        const leadKnee = calculateAngle(...selectedLeadIndices.map(point));
+        const leftShoulder = point(11), rightShoulder = point(12);
+        const leftHip = point(23), rightHip = point(24);
+        let trunkTilt = null;
+        if (leftShoulder && rightShoulder && leftHip && rightHip) {
+          const midShoulder = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
+          const midHip = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
+          trunkTilt = calculateAngle({ x: midHip.x, y: midHip.y - h }, midHip, midShoulder);
         }
-
-        // Draw Left Knee Angle tag
-        if (lm[25] && lm[25].visibility > 0.5) {
-          const px = lm[25].x * w + 12;
-          const py = lm[25].y * h;
-          ctx.fillStyle = '#34d399';
-          ctx.strokeText(`前膝: ${lKnee}°`, px, py);
-          ctx.fillText(`前膝: ${lKnee}°`, px, py);
-        }
-        ctx.restore();
+        currentMetrics = { rightElbow, leftElbow, leadKnee, trunkTilt };
       }
+
+      metricDefinitions.forEach(metric => {
+        const value = currentMetrics[metric.key];
+        metric.text.textContent = formatAngle(value);
+        metric.bar.style.width = Number.isFinite(value) ? `${Math.min(100, value / 180 * 100)}%` : '0%';
+      });
+
+      if (!lm || !toggleAngleLabels.checked) return;
+      ctx.save();
+      ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      const labels = [
+        { index: 14, key: 'rightElbow', text: '右肘', color: '#60a5fa' },
+        { index: 13, key: 'leftElbow', text: '左肘', color: '#a78bfa' },
+        { index: leadSideSelect.value === 'right' ? 26 : 25, key: 'leadKnee', text: '前膝', color: '#34d399' }
+      ];
+      labels.forEach(label => {
+        const p = point(label.index), value = currentMetrics[label.key];
+        if (!p || !Number.isFinite(value)) return;
+        ctx.fillStyle = label.color;
+        ctx.strokeText(`${label.text}: ${value}°`, p.x + 12, p.y);
+        ctx.fillText(`${label.text}: ${value}°`, p.x + 12, p.y);
+      });
+      ctx.restore();
     }
+
+    function renderStageAnalysis() {
+      const labels = stageDefinitions[motionTypeSelect.value];
+      const count = stageMarkers.filter(Boolean).length;
+      stageMarkerCount.textContent = `${count} / 4 個階段`;
+      stageButtons.forEach((button, index) => {
+        button.querySelector('span:first-child').textContent = labels[index];
+        button.querySelector('.stage-time').textContent = stageMarkers[index]
+          ? `${formatTime(stageMarkers[index].time)} · 回看`
+          : '點擊標記';
+      });
+      stageTableHead.innerHTML = `<th scope="col">量測</th>${labels.map((label, index) => `<th scope="col">${label}${stageMarkers[index] ? `<br><span class="font-normal">${formatTime(stageMarkers[index].time)}</span>` : ''}</th>`).join('')}`;
+      stageTableBody.innerHTML = metricDefinitions.map(metric => {
+        const cells = stageMarkers.map(marker => {
+          const value = marker?.metrics?.[metric.key];
+          return `<td>${Number.isFinite(value) ? `${Math.round(value)}°` : '—'}</td>`;
+        }).join('');
+        return `<tr><th scope="row">${metric.label}</th>${cells}</tr>`;
+      }).join('');
+
+      if (count === 0) {
+        stageAnalysisHelp.textContent = '先選影片並分析到球員，再標記各階段。數值是單鏡頭 2D 估算，用於同一支影片的階段比較。';
+        analysisSummary.textContent = '標記動作階段後，這裡會整理可比較的角度變化；不會用單一角度替球員評分。';
+        return;
+      }
+      stageAnalysisHelp.textContent = `已記錄 ${count}/4 個階段；再次點已標記的階段可跳回該影格。缺少可見關節時會顯示「—」，不會把缺值當成 0°。`;
+      const start = stageMarkers[0], keyIndex = 2, end = stageMarkers[keyIndex];
+      if (!start || !end) {
+        analysisSummary.textContent = `已記錄 ${count} 個階段。補上「${labels[0]}」和「${labels[keyIndex]}」後，可直接比較兩個時點的角度變化。`;
+        return;
+      }
+      const changes = metricDefinitions
+        .map(metric => {
+          const from = start.metrics[metric.key], to = end.metrics[metric.key];
+          if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+          const delta = to - from;
+          return `${metric.label} ${Math.round(from)}°→${Math.round(to)}°（${delta > 0 ? '+' : ''}${Math.round(delta)}°）`;
+        })
+        .filter(Boolean);
+      analysisSummary.textContent = changes.length
+        ? `${labels[0]}到${labels[keyIndex]}：${changes.join('；')}。這些是畫面投影角度變化，不是動作好壞分數。`
+        : `${labels[0]}與${labels[keyIndex]}有標記，但必要關節點不夠清楚，無法比較角度。請換較清楚的影格。`;
+    }
+
+    function clearStageMarkers(message = '已清除階段標記。') {
+      stageMarkers.fill(null);
+      renderStageAnalysis();
+      statusText.textContent = message;
+    }
+
+    function markOrJumpStage(index) {
+      if (!video.videoWidth) {
+        statusText.textContent = '請先載入球員影片。';
+        return;
+      }
+      const marker = stageMarkers[index];
+      if (marker) {
+        pauseVideo();
+        video.onseeked = () => {
+          processCurrentVideoFrame(true);
+          video.onseeked = null;
+        };
+        video.currentTime = marker.time;
+        return;
+      }
+      if (!currentPoseLandmarks || lastPoseSampleTime === null) {
+        statusText.textContent = '此影格還沒有可用骨架；請等畫面辨識到球員再標記。';
+        return;
+      }
+      stageMarkers[index] = {
+        time: lastPoseSampleTime,
+        frame: Math.round(lastPoseSampleTime * fps),
+        metrics: { ...currentMetrics },
+        quality: currentPoseQuality
+      };
+      renderStageAnalysis();
+      statusText.textContent = `已標記「${stageDefinitions[motionTypeSelect.value][index]}」於 ${formatTime(lastPoseSampleTime)}。`;
+    }
+
+    motionTypeSelect.addEventListener('change', () => {
+      clearStageMarkers('動作類型已切換，請重新標記各階段。');
+      renderStageAnalysis();
+    });
+    leadSideSelect.addEventListener('change', () => {
+      clearStageMarkers('前腳側已切換，請重新標記以保持量測一致。');
+      renderCurrentFrame();
+    });
+    stageButtons.forEach((button, index) => button.addEventListener('click', () => markOrJumpStage(index)));
+    clearStageMarkersButton.addEventListener('click', () => clearStageMarkers());
+    renderStageAnalysis();
 
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame(force = false) {
-      if (!pose || !video.videoWidth) return;
+      if (!pose || !video.videoWidth || video.dataset.analysisDisabled === 'true') return;
       if (isProcessingPose) {
         if (force) forcePoseAfterCurrent = true;
         return;
@@ -545,11 +753,13 @@
       const now = performance.now();
       if (!force && now - lastPoseInferenceAt < POSE_INFERENCE_INTERVAL_MS) return;
       lastPoseInferenceAt = now;
+      pendingPoseVideoTime = video.currentTime;
       isProcessingPose = true;
       try {
         await pose.send({ image: video });
       } catch (err) {
         console.warn("Pose evaluation error:", err);
+        statusText.textContent = "姿態辨識暫時失敗；可繼續逐格觀看或重載影片";
       } finally {
         isProcessingPose = false;
         if (forcePoseAfterCurrent) {
@@ -585,6 +795,10 @@
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
       dropPrompt.style.display = 'none';
+      video.dataset.analysisDisabled = 'false';
+      clearStageMarkers('新影片已載入，請從準備階段開始標記。');
+      currentPoseLandmarks = null;
+      lastPoseSampleTime = null;
       statusText.textContent = "載入影片中...";
 
       let src = "";
@@ -597,11 +811,13 @@
       video.src = src;
       video.load();
       video.onloadedmetadata = () => {
+        fps = 30; frameDuration = 1 / fps; fpsSamples = []; previousVideoFrameMeta = null; fpsText.textContent = '估算中（暫用 30 fps）';
+        observeVideoFrameRate();
         resizePoseCanvas();
         video.classList.remove('hidden');
         durationDisplay.textContent = formatTime(video.duration);
         totalFramesText.textContent = Math.round(video.duration * fps);
-        statusText.textContent = `解析度: ${video.videoWidth}x${video.videoHeight}`;
+        statusText.textContent = `影片已載入 ${video.videoWidth}×${video.videoHeight}；播放後開始辨識`;
         video.currentTime = 0;
         setTimeout(() => {
           processCurrentVideoFrame(true);
@@ -666,6 +882,8 @@
         return;
       }
       try {
+        video.dataset.analysisDisabled = 'false';
+        clearStageMarkers('鏡頭已開啟，請對準球員並標記動作階段。');
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
         video.srcObject = stream;
         video.classList.remove('hidden');
@@ -674,6 +892,9 @@
         await video.play();
         isPlaying = true;
         playIcon.textContent = '⏸ 暫停';
+        observeVideoFrameRate();
+        processCurrentVideoFrame(true);
+        startPlaybackLoop();
       } catch (error) {
         statusText.textContent = '未開啟鏡頭，改用影片匯入';
         videoInput.click();
@@ -854,7 +1075,13 @@
     // Load Demo Video (Simulated Baseball Swing Animation Canvas)
     btnDemo.addEventListener('click', () => {
       dropPrompt.style.display = 'none';
-      statusText.textContent = "載入示範測試球員...";
+      video.dataset.analysisDisabled = 'true';
+      fpsText.textContent = '示範動畫';
+      currentPoseLandmarks = null;
+      lastPoseSampleTime = null;
+      clearStageMarkers('示範動畫不會產生球員動作數據。');
+      updateBiomechanics(null);
+      statusText.textContent = '播放介面示範（合成動畫，不是球員影片）';
       
       // Create an animated canvas video stream for testing without files
       const demoCanvas = document.createElement('canvas');
@@ -930,20 +1157,6 @@
       startPlaybackLoop();
     });
 
-    // A small, thumb-friendly stage navigator makes the timeline feel like a discovery tool.
-    const stageButtons = [...document.querySelectorAll('.stage-track button')];
-    const insightCopy = [
-      '先找到身體開始移動的那一格。',
-      '看看前腳落地時，身體有沒有保持穩定。',
-      '這通常是最值得留下來分享的關鍵畫面。',
-      '觀察動作完成後，身體如何停住。'
-    ];
-    stageButtons.forEach((button, index) => button.addEventListener('click', () => {
-      stageButtons.forEach(item => item.classList.remove('active'));
-      button.classList.add('active');
-      const insight = document.querySelector('.insight-card p');
-      if (insight) insight.textContent = insightCopy[index];
-    }));
   </script>
 </body>
 </html>
