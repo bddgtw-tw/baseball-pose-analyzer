@@ -7,8 +7,7 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- MediaPipe Pose CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <!-- Lite engine experiment: MediaPipe Tasks Vision is dynamically loaded below. -->
   <style>
     :root { --ink:#f6f7ef; --muted:#9aa39b; --ground:#07100f; --panel:#0d1a18; --panel-2:#12231f; --line:#22352f; --lime:#d8ff45; --green:#69e09b; --orange:#ff9f43; }
     body { font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif; background:var(--ground); color:var(--ink); }
@@ -373,25 +372,48 @@
     let currentPoseLandmarks = null;
     let isProcessingPose = false;
 
-    // Initialize MediaPipe Pose
+    // MediaPipe Tasks Vision Lite experiment (GPU first, CPU fallback).
     let pose = null;
-    try {
-      pose = new Pose({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-      });
-      pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        enableSegmentation: false,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-      pose.onResults(onPoseResults);
-      statusText.textContent = "AI 模型加載完成";
-    } catch (err) {
-      console.warn("MediaPipe load error:", err);
-      statusText.textContent = "AI 離線或模擬模式";
+    let poseDrawingUtils = null;
+    let poseConnections = [];
+    let lastInferenceAt = 0;
+    const POSE_INFERENCE_INTERVAL_MS = 100; // Cap synchronous inference to ~10 fps.
+
+    async function initializePoseLandmarker() {
+      statusText.textContent = "載入 Lite 姿態模型…";
+      try {
+        const visionVersion = "1.2.2";
+        const visionCdn = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${visionVersion}`;
+        const { FilesetResolver, PoseLandmarker, DrawingUtils } =
+          await import(`${visionCdn}/vision_bundle.mjs`);
+        const vision = await FilesetResolver.forVisionTasks(`${visionCdn}/wasm`);
+        const modelAssetPath =
+          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+        const options = {
+          baseOptions: { modelAssetPath, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          outputSegmentationMasks: false
+        };
+        try {
+          pose = await PoseLandmarker.createFromOptions(vision, options);
+          statusText.textContent = "Lite 模型就緒 · GPU";
+        } catch (gpuError) {
+          console.warn("GPU initialization failed; trying CPU.", gpuError);
+          pose = await PoseLandmarker.createFromOptions(vision, {
+            ...options,
+            baseOptions: { modelAssetPath, delegate: "CPU" }
+          });
+          statusText.textContent = "Lite 模型就緒 · CPU";
+        }
+        poseDrawingUtils = new DrawingUtils(ctx);
+        poseConnections = PoseLandmarker.POSE_CONNECTIONS;
+      } catch (err) {
+        console.error("Pose Landmarker initialization failed:", err);
+        statusText.textContent = "AI 模型載入失敗";
+      }
     }
+    initializePose();
 
     // Mathematical Angle Calculator: angle between vectors AB and BC (joint B is vertex)
     function calculateAngle(a, b, c) {
@@ -406,7 +428,7 @@
 
     // MediaPipe Pose Results Handler
     function onPoseResults(results) {
-      currentPoseLandmarks = results.poseLandmarks || null;
+      currentPoseLandmarks = results.landmarks?.[0] || null;
       renderCurrentFrame();
     }
 
@@ -425,17 +447,12 @@
 
       // Draw Pose Landmarks if enabled
       if (currentPoseLandmarks && toggleSkeleton.checked) {
-        // Draw Skeleton Lines
-        if (window.drawConnectors) {
-          drawConnectors(ctx, currentPoseLandmarks, POSE_CONNECTIONS, {
+        if (poseDrawingUtils) {
+          poseDrawingUtils.drawConnectors(currentPoseLandmarks, poseConnections, {
             color: '#ef4444',
             lineWidth: Math.max(2, Math.round(canvas.width / 400))
           });
-        }
-
-        // Draw Skeleton Dots
-        if (window.drawLandmarks) {
-          drawLandmarks(ctx, currentPoseLandmarks, {
+          poseDrawingUtils.drawLandmarks(currentPoseLandmarks, {
             color: '#10b981',
             fillColor: '#34d399',
             lineWidth: 1,
@@ -526,9 +543,13 @@
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame() {
       if (!pose || isProcessingPose || !video.videoWidth) return;
+      const now = performance.now();
+      if (now - lastInferenceAt < POSE_INFERENCE_INTERVAL_MS) return;
       isProcessingPose = true;
+      lastInferenceAt = now;
       try {
-        await pose.send({ image: video });
+        const result = pose.detectForVideo(video, now);
+        onPoseResults(result);
       } catch (err) {
         console.warn("Pose evaluation error:", err);
       } finally {
