@@ -77,6 +77,11 @@
     #videoDeck { order:4; }
     #imageTools { order:5; }
     #controlPanel { display:flex; flex-direction:column; gap:12px; min-width:0; }
+    .control-section-title { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--ink); font-size:.95rem; font-weight:800; letter-spacing:-.02em; }
+    .control-section-title::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--lime); flex:0 0 auto; }
+    #exportTools { order:6; display:flex; flex-wrap:wrap; gap:8px; }
+    #exportTools .control-section-title { flex-basis:100%; }
+    #exportTools button { flex:1 1 140px; }
     .mobile-source-actions { display:none; }
     @media (max-width:760px) {
       .floating-playback { padding:5px; gap:3px; }
@@ -129,8 +134,8 @@
       header .w-10 { width:26px!important; height:26px!important; min-width:26px!important; }
       header .w-10::after { font-size:1rem!important; }
       main { padding:4px 8px 8px!important; gap:6px!important; }
-      main > .lg\:col-span-3 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "playback" "framing" "deck" "tools"; gap:6px!important; min-width:0; align-items:start; }
-      main > .lg\:col-span-3.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "framing framing" "deck deck" "tools tools"; }
+      main > .lg\:col-span-3 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "playback" "framing" "deck" "tools" "export"; gap:6px!important; min-width:0; align-items:start; }
+      main > .lg\:col-span-3.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "framing framing" "deck deck" "tools tools" "export export"; }
       #controlPanel { display:contents; }
       .mobile-source-actions { display:flex; grid-area:source; gap:6px; }
       .mobile-source-actions > * { min-height:30px; padding:4px 9px; font-size:11px; }
@@ -145,6 +150,7 @@
       #videoDeck > div { min-height:42px; }
       #videoFraming { grid-area:framing; margin-top:0; }
       #imageTools { grid-area:tools; margin-top:0; }
+      #exportTools { grid-area:export; margin-top:0; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
       .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
     }
@@ -156,7 +162,12 @@
       #videoStage { grid-area:stage; width:min(100%, calc((100svh - 150px) * 16 / 9)); height:auto; min-height:0; max-height:none; aspect-ratio:16 / 9!important; margin:0; justify-self:start; }
       #videoStage.video-portrait { width:min(100%, calc((100svh - 150px) * 9 / 16)); height:min(calc(100svh - 150px), 720px); min-height:360px; aspect-ratio:9 / 16!important; margin-inline:auto; }
       #controlPanel { grid-area:controls; display:flex; align-self:stretch; gap:12px; }
-      #floatingPlayback, #videoFraming, #videoDeck, #imageTools { order:initial; width:100%; }
+      #floatingPlayback, #videoFraming, #videoDeck, #imageTools, #exportTools { order:initial; width:100%; }
+      #floatingPlayback { order:1; }
+      #videoFraming { order:2; }
+      #videoDeck { order:3; }
+      #imageTools { order:4; }
+      #exportTools { order:5; }
       #floatingPlayback { padding:8px; }
       .floating-playback-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
       .floating-playback-row button { min-height:48px; }
@@ -166,7 +177,7 @@
       #videoFraming > span:last-child { grid-column:1 / -1; }
       #videoDeck > div { min-height:44px; }
       #imageTools { display:flex; flex-wrap:wrap; }
-      #imageTools .annotationStatus { flex-basis:100%; }
+      #imageTools #annotationStatus { flex-basis:100%; }
     }
     .slider::-webkit-slider-thumb {
       appearance: none;
@@ -192,7 +203,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.3.1</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.3.2</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -256,6 +267,7 @@
       <div id="controlPanel" aria-label="影片分析功能">
       <!-- Playback controls live outside the video so they never cover the athlete. -->
       <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
+        <div class="control-section-title">播放控制</div>
         <div class="floating-playback-row">
           <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">-5</button>
           <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95"><span>-1</span></button>
@@ -268,7 +280,7 @@
 
       <!-- Reframing controls: crop only the display, not the original source. -->
       <div id="videoFraming" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片取景">
-        <span class="text-xs font-semibold text-slate-200">人物取景</span>
+        <div class="control-section-title">人物取景</div>
         <label for="frameZoom" class="text-xs text-slate-300">縮放 <span id="frameZoomValue">1.0×</span></label>
         <input id="frameZoom" class="flex-1 min-w-24 max-w-52 accent-lime-300" type="range" min="1" max="3" step="0.1" value="1" aria-label="影片縮放倍率">
         <button id="btnResetFraming" type="button" class="bg-slate-800 text-xs px-3 py-2 rounded-md">還原取景</button>
@@ -278,19 +290,24 @@
 
       <!-- Unified image tools directly beneath video -->
       <div id="imageTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
-        <span class="text-xs font-medium text-slate-300 mr-1">畫面工具</span>
+        <div class="control-section-title">畫面工具</div>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">量角度</button>
         <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
         <span class="hidden sm:block h-6 border-l border-slate-700 mx-1" aria-hidden="true"></span>
+        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
+      </div>
+
+      <div id="exportTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3" aria-label="匯出工具">
+        <div class="control-section-title">匯出工具</div>
         <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
         <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載目前影片的取景與骨架分析影片">下載分析影片</button>
-        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
       </div>
 
       <!-- Video Control Deck -->
       <div id="videoDeck" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
+        <div class="control-section-title">逐格時間軸</div>
         <!-- Scrubber Slider -->
         <div class="flex items-center gap-3">
           <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
