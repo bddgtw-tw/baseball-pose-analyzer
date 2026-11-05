@@ -288,7 +288,19 @@
         <span class="text-xs text-slate-400">放大後拖曳人物調整位置，原始影片不變</span>
       </div>
 
-      <!-- Unified image tools directly beneath video -->
+      <!-- Video Control Deck -->
+      <div id="videoDeck" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
+        <div class="control-section-title">逐格時間軸</div>
+        <!-- Scrubber Slider -->
+        <div class="flex items-center gap-3">
+          <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
+          <input type="range" id="scrubber" min="0" max="0" value="0" step="1" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer" aria-label="影片逐格時間軸">
+          <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
+        </div>
+
+      </div>
+
+      <!-- Drawing tools stay grouped, away from the primary playback controls. -->
       <div id="imageTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
         <div class="control-section-title">畫面工具</div>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
@@ -303,18 +315,6 @@
         <div class="control-section-title">匯出工具</div>
         <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
         <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載目前影片的取景與骨架分析影片">下載分析影片</button>
-      </div>
-
-      <!-- Video Control Deck -->
-      <div id="videoDeck" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
-        <div class="control-section-title">逐格時間軸</div>
-        <!-- Scrubber Slider -->
-        <div class="flex items-center gap-3">
-          <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
-          <input type="range" id="scrubber" min="0" max="0" value="0" step="1" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer" aria-label="影片逐格時間軸">
-          <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
-        </div>
-
       </div>
       </div>
     </div>
