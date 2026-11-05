@@ -84,26 +84,26 @@
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
           </h1>
-          <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
+          <p class="text-xs text-slate-400">影片留在瀏覽器處理・33 點姿態估算・逐格回看與角度觀察</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
         <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">手機拍攝</button>
         <label for="videoInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
-          <span>選一段影片開始玩</span>
+          <span>選擇球員影片</span>
           <input type="file" id="videoInput" accept="video/*" capture="environment" class="hidden">
         </label>
         <button id="btnDemo" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">
-          先看示範
+          播放器示範
         </button>
       </div>
     </div>
   </header>
 
   <section class="max-w-7xl mx-auto w-full px-6 pt-8 motion-intro">
-    <div><h2>看看你的動作，AI 會抓到什麼</h2></div>
-    <p>上傳一段投球、打擊或跑壘影片，拖著時間軸逐格看看身體怎麼動。</p>
+    <div><h2>逐格看清動作，記下每個關鍵階段</h2></div>
+    <p>匯入投球或打擊影片，標記關鍵時點，對照骨架與 2D 關節角度。</p>
   </section>
 
   <!-- Main Content Grid -->
@@ -123,7 +123,7 @@
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <div class="text-5xl mb-3 text-lime-300">⌁</div>
           <p class="text-xl font-bold text-white mb-2">把一段動作放進來</p>
-          <p class="text-sm text-slate-400 max-w-md">上傳影片，或先載入示範動作。影片只在你的瀏覽器裡分析，不會上傳。</p>
+          <p class="text-sm text-slate-400 max-w-md">上傳球員影片開始分析；也可先看播放器操作示範。示範動畫不會產生球員數據。</p>
         </div>
 
         <!-- Processing indicator badge -->
@@ -235,9 +235,9 @@
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-lg">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
-            AI 正在看這個動作
+            關節角度觀察
           </h2>
-          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">即時分析</span>
+          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">單鏡頭 2D</span>
         </div>
 
         <div class="insight-card"><strong>觀察摘要</strong><p id="analysisSummary" class="text-sm text-slate-200 mt-1">標記動作階段後，這裡會整理可比較的角度變化；不會用單一角度替球員評分。</p></div>
@@ -283,13 +283,13 @@
         <!-- Angle metric: Lead Knee -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
           <div class="flex justify-between items-center text-xs mb-1">
-            <span class="text-slate-400 font-medium">前膝伸展角度 (前腳煞車)</span>
+            <span class="text-slate-400 font-medium">前腳膝關節角度</span>
             <span id="leadKneeAngle" class="text-emerald-400 font-bold font-mono text-sm">--°</span>
           </div>
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div id="leadKneeBar" class="bg-emerald-500 h-full w-0 transition-all duration-75"></div>
           </div>
-          <p class="text-[10px] text-slate-400 mt-1">前腳側可在上方切換；數值不是通用及格線。</p>
+          <p class="text-[10px] text-slate-400 mt-1">量測畫面上的膝角；不代表地面作用力或通用及格線。</p>
         </div>
 
         <!-- Angle metric: Hip-Shoulder Separation Proxy -->
