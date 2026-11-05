@@ -3,38 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>棒球動作檢視器｜Baseball Motion</title>
+  <title>棒球 AI 動作實驗室｜看看你的動作，AI 會抓到什麼</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- MediaPipe Pose CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
-:root{color-scheme:dark;--ground:#111416;--panel:#1a1e21;--line:#30363a;--muted:#a8b1b6;--accent:#a8d6bf}
-*{box-sizing:border-box}body{margin:0;background:var(--ground)!important;color:#edf0f2;font-family:Inter,"Noto Sans TC",system-ui,sans-serif}button,input,label{font:inherit}button,label[for]{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.4;cursor:wait}button:focus-visible,input:focus-visible,summary:focus-visible,label:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button:hover{filter:brightness(1.16)}button,input{accent-color:var(--accent)}button{min-height:44px;border-radius:8px!important;box-shadow:none!important;transition:background .15s}header{background:#111416!important;border-color:var(--line)!important;padding:18px 28px!important;position:relative!important}header .max-w-7xl{max-width:1440px}header h1{font-size:16px!important;letter-spacing:-.025em}header p{font-size:11px!important;color:var(--muted)!important;margin-top:4px}header .w-10{background:#a8d6bf!important;color:#13251d!important;border-radius:10px!important;box-shadow:none!important}header h1>span:first-child{display:none}#appVersion{color:var(--muted)!important;border-color:var(--line)!important;background:transparent!important}header label,header button{font-size:12px!important;min-height:40px;padding:10px 14px!important}main{max-width:1440px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;gap:24px!important;padding:28px!important;align-items:start}#playerColumn{grid-column:auto!important;display:flex!important;flex-direction:column;gap:0!important;min-width:0}#videoStage{order:0;aspect-ratio:16/10!important;width:100%;height:auto;max-height:72vh;min-height:280px;background:#080a0b!important;border:1px solid var(--line)!important;border-radius:14px 14px 0 0!important;box-shadow:none!important}#videoStage.video-portrait{aspect-ratio:auto!important;height:65vh}#videoEl{display:none!important}#outputCanvas{width:100%;height:100%;object-fit:contain}#annotationCanvas{touch-action:none}#outputCanvas.frame-pan-active{touch-action:none;cursor:grab}#dropPrompt{border:0!important;margin:0!important;border-radius:14px!important;background:radial-gradient(ellipse at 50% 100%,#25342e 0,transparent 65%),#171c1e!important;gap:14px;cursor:default}#dropPrompt p{font-size:clamp(22px,3vw,34px)!important;letter-spacing:-.04em;margin:0!important}#dropPrompt .empty-note{font-size:13px!important;font-weight:400;color:var(--muted);max-width:310px;line-height:1.8}#dropPrompt label{min-height:46px;font-size:13px!important;padding:12px 20px!important}#statusBadge,#frameBadge{font-family:inherit;font-size:10px;background:#111416cc!important;border-color:#ffffff15!important;max-width:60%}#statusBadge .animate-pulse{animation:none;background:var(--accent)}#frameBadge{left:auto;right:12px;top:auto;bottom:12px;max-width:none;color:#c9d2d6!important}.mobile-source-actions{display:none}#controlPanel{display:flex;flex-direction:column;gap:0;background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;overflow:hidden}#videoDeck{order:0;border:0!important;border-radius:0!important;background:transparent!important;padding:18px 20px 4px!important;box-shadow:none!important}#videoDeck .control-section-title{display:none}#floatingPlayback{order:1;background:transparent;border:0;padding:12px 16px 18px}#floatingPlayback.hidden{display:none}.floating-playback-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.floating-playback-row button{min-width:46px;font-size:12px}#floatingPlayback>.control-section-title{display:none}#btnPlayPause{min-width:110px;justify-content:center;background:var(--accent)!important;color:#14231c!important}#speedRow{display:flex;justify-content:center;gap:4px;margin-top:12px;align-items:center}#speedRow>span{font-size:11px;color:var(--muted);margin-right:8px}.speed-btn{padding:6px 10px;min-height:32px!important;font-size:11px;background:transparent;color:var(--muted)}.speed-btn[aria-pressed=true]{background:#33463c;color:#d0eadd}#videoFraming,#imageTools,#exportTools{background:transparent!important;border:0!important;border-radius:0!important;padding:16px!important;box-shadow:none!important}#videoFraming{display:flex;flex-wrap:wrap;gap:8px}#videoFraming .control-section-title,#imageTools .control-section-title,#exportTools .control-section-title{display:none}#frameZoom{appearance:auto;min-width:80px;max-width:none;flex:1;height:24px}#videoFraming>span:last-child{width:100%;font-size:11px}#imageTools{display:flex;flex-wrap:wrap;gap:6px}.annotation-tool,#clearAnnotations{display:block!important;font-size:12px}#annotationStatus{display:block!important;width:100%;font-size:11px;color:var(--muted);margin:6px 0 0}#exportTools{display:flex;gap:8px;border-top:1px solid var(--line)!important}#exportTools button{flex:1;font-size:12px;background:#29312f!important;color:#dae6df!important}#btnSnapshot{border:1px solid #42594c}details.tool-disclosure{border-top:1px solid var(--line);order:2}details.tool-disclosure summary{cursor:pointer;padding:16px 20px;font-size:12px;color:#d8dee0;min-height:48px}details.tool-disclosure summary::marker{color:var(--muted)}#exportTools{order:5}#diagnosticPanel{grid-column:auto!important;width:100%;gap:16px;max-width:none}#diagnosticPanel>.bg-slate-900{background:var(--panel)!important;border-color:var(--line)!important;box-shadow:none!important;padding:20px!important;gap:14px!important}#diagnosticPanel h2{font-size:13px}#diagnosticPanel .bg-slate-950\/70{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0 0 14px!important}#diagnosticPanel .bg-slate-950\/70 p{display:none}#diagnosticPanel [id$=Angle]{font-size:22px;color:#d2e9dc!important;font-weight:500}#diagnosticPanel [id$=Bar]{background:#769b86!important}#diagnosticPanel input[type=checkbox]{width:16px;height:16px}#diagnosticPanel label{min-height:36px}#diagnosticPanel p{line-height:1.7}#diagnosticPanel>.bg-slate-900\/60{background:transparent!important;border:0!important;padding:4px!important;line-height:1.8}.insight-card,.result-card{display:none!important}.text-slate-400{color:var(--muted)!important}.bg-blue-600{background:var(--accent)!important;color:#14231c!important}.bg-slate-800{background:#282f33!important}.control-section-title{font-size:12px;font-weight:600}#scrubber{min-height:24px;touch-action:pan-x}#timeDisplay,#durationDisplay{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}#frameBadge{font-variant-numeric:tabular-nums}.tool-disclosure[open] summary{padding-bottom:0}#workspaceNote{color:var(--muted);font-size:11px;line-height:1.7;padding:14px 4px}#workspaceNote strong{color:#d0d9d4;font-weight:500}kbd{background:#293034!important;color:#cbd7d0!important} @media(max-width:1000px){main{grid-template-columns:minmax(0,1fr) 260px!important;gap:16px!important;padding:20px!important}header{padding:16px 20px!important}header p{display:none}}
-@media(max-width:760px){header{padding:14px 16px!important}header .max-w-7xl{gap:10px}header .max-w-7xl>div:first-child{display:flex}header h1{font-size:14px!important}header .w-10{width:32px;height:32px;font-size:11px}main{display:flex!important;flex-direction:column;padding:12px!important;gap:20px!important}#playerColumn{width:100%}.mobile-source-actions{display:flex;gap:8px;order:-1;margin-bottom:12px}.mobile-source-actions>*{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;text-align:center;cursor:pointer}.mobile-source-primary{flex:1;background:var(--accent);color:#14231c;font-weight:600}#videoStage{min-height:260px;aspect-ratio:4/3!important;max-height:64vh}#videoStage.video-portrait{height:60vh;min-height:300px}#floatingPlayback{padding:10px 8px 16px}.floating-playback-row{gap:4px}.floating-playback-row button{padding:8px;min-width:40px}#btnPlayPause{min-width:88px}#diagnosticPanel{width:100%}#diagnosticPanel>.bg-slate-900{display:grid;grid-template-columns:1fr 1fr;gap:16px!important}#diagnosticPanel>.bg-slate-900>div:first-child,#diagnosticPanel>.bg-slate-900>div:last-child{grid-column:1/-1}#dropPrompt .empty-note{font-size:12px!important;padding:0 16px}#frameBadge{font-size:9px}#workspaceNote{padding:12px 4px}}
-@media(max-height:500px) and (orientation:landscape){header{padding:8px 16px!important}main{grid-template-columns:minmax(0,1fr) 260px!important;display:grid!important}#videoStage,#videoStage.video-portrait{height:65vh;min-height:180px;max-height:none}#diagnosticPanel{display:flex}#diagnosticPanel>.bg-slate-900{display:flex}header .w-10{height:28px;width:28px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
-#scrubber{appearance:none;background:transparent!important;height:24px}#scrubber::-webkit-slider-runnable-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;cursor:pointer}#scrubber::-moz-range-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--accent)}
-
-#captureDialog{margin:auto;width:min(800px,calc(100% - 20px));max-height:96dvh;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:18px;background:#161c1e;color:#edf0f2}#captureDialog::backdrop{background:#030605e8}.capture-heading,.capture-options,.capture-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.capture-heading{justify-content:space-between}.capture-heading h2{font-size:17px;font-weight:600}.capture-heading button{width:44px;background:#29312e}.capture-options{margin:12px 0;font-size:12px}.capture-options label{display:flex;align-items:center;gap:8px;min-height:36px}.capture-options select{padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:#26312b;color:#e0ede6}.capture-tip{font-size:11px;line-height:1.8;color:var(--muted);margin:10px 0}#captureViewport{position:relative;background:#050807;width:100%;aspect-ratio:16/9;max-height:58dvh;margin:auto}#capturePreview{display:block;width:100%;height:100%;object-fit:contain}#captureGuide{position:absolute;pointer-events:none;inset:0;width:100%;height:100%}#captureStatus{font-size:12px;color:#c6decf;min-height:24px;margin:12px 0}.capture-actions button{padding:10px 16px;background:#2d3832;font-size:12px}#captureRecord{background:var(--accent);color:#14231c}#captureStop{background:#75423d;color:#fff}.capture-actions button:disabled{opacity:.4}#captureDialog button{touch-action:manipulation}#downloadOriginal{padding:8px 12px;font-size:12px;border:1px solid var(--line);border-radius:8px;color:var(--accent);display:inline-block;margin-top:8px}#downloadOriginal[hidden]{display:none}@media(max-height:500px) and (orientation:landscape){#captureDialog{display:none}#captureDialog[open]{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:8px}#captureViewport{grid-column:1;grid-row:2/7;max-height:72dvh}#captureDialog>.capture-heading{grid-column:1/-1}#captureDialog>.capture-options,#captureDialog>.capture-tip,#captureStatus,.capture-actions{grid-column:2;margin:0}.capture-actions{gap:6px}.capture-actions button{width:100%}}
-
-/* One persistent source toolbar for every screen size. */
-.source-toolbar{display:flex!important;order:-1;align-items:center;gap:8px;margin-bottom:14px}
-.source-toolbar>button{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:10px 16px;font-size:12px;white-space:nowrap}
-.source-toolbar .mobile-source-primary{background:var(--accent);color:#14231c;font-weight:600;flex:0 1 auto}
-.source-toolbar .mobile-source-secondary{background:#1a2022;color:#e0e7e3}
-.source-toolbar>input{display:none!important}
-@media(max-width:760px){.source-toolbar .mobile-source-primary{flex:1}.source-toolbar>button{padding:10px 12px}}
-
-/* Empty state has one central action; replacement appears only after loading. */
-#playerColumn>.source-toolbar{display:none!important}
-#playerColumn.has-video>.source-toolbar{display:flex!important}
-#btnCamera,#btnDemo{display:none!important}
-#dropPrompt .empty-source-button{margin-top:12px;min-height:48px;padding:12px 32px;background:var(--accent);color:#14231c;font-size:15px;font-weight:600;border:0;border-radius:9px}
-.source-toolbar #changeVideo{flex:0 1 auto}
-</style>
+    :root { --ink:#f6f7ef; --muted:#9aa39b; --ground:#07100f; --panel:#0d1a18; --panel-2:#12231f; --line:#22352f; --lime:#d8ff45; --green:#69e09b; --orange:#ff9f43; }
+    body { font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif; background:var(--ground); color:var(--ink); }
+    header { background:rgba(7,16,15,.92)!important; border-color:var(--line)!important; }
+    header .max-w-7xl { max-width:1400px; }
+    header h1 { font-size:clamp(1.15rem,2vw,1.8rem)!important; letter-spacing:-.04em!important; }
+    header p { color:var(--muted)!important; font-size:.85rem!important; }
+    header .w-10 { background:var(--lime)!important; color:#0a1512!important; border-radius:12px!important; box-shadow:none!important; font-size:0!important; }
+    header .w-10::after { content:'↗'; font-size:1.4rem; font-weight:900; }
+    header span.bg-blue-500\/20 { display:none; }
+    main { max-width:1400px!important; gap:20px!important; padding:28px 24px!important; }
+    .bg-black { background:#020504!important; border-color:var(--line)!important; border-radius:20px!important; box-shadow:0 24px 70px rgba(0,0,0,.32)!important; }
+    .bg-slate-900, .bg-slate-900\/60 { background:var(--panel)!important; border-color:var(--line)!important; box-shadow:none!important; }
+    .bg-slate-950\/70 { background:var(--panel-2)!important; border-color:var(--line)!important; }
+    .border-slate-800, .border-slate-800\/80, .border-slate-700 { border-color:var(--line)!important; }
+    .text-blue-400, .text-indigo-400 { color:var(--lime)!important; }
+    .bg-blue-600, .bg-indigo-600 { background:var(--lime)!important; color:#0a1512!important; }
+    .hover\\:bg-blue-500:hover, .hover\\:bg-indigo-500:hover { background:#e9ff8a!important; }
+    .bg-emerald-600 { background:var(--green)!important; color:#07100f!important; }
+    .bg-amber-500 { background:var(--orange)!important; }
+    .rounded-xl, .rounded-2xl, .rounded-lg { border-radius:14px!important; }
+    button, label[for=videoInput] { min-height:40px; transition:transform .18s ease, background .18s ease; }
+    button:hover, label[for=videoInput]:hover { transform:translateY(-1px); }
+    code, kbd { color:var(--lime)!important; background:#172a23!important; }
+    .slider::-webkit-slider-thumb { background:var(--lime); box-shadow:0 0 0 4px rgba(216,255,69,.15); }
+    .motion-intro { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:16px; }
+    .motion-intro h2 { font-size:clamp(1.6rem,3vw,2.7rem); line-height:1; letter-spacing:-.055em; max-width:720px; }
+    .motion-intro p { color:var(--muted); max-width:430px; line-height:1.55; }
+    .stage-track { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:0 0 14px; }
+    .stage-track button { border:0; border-radius:8px!important; background:#15251f; color:#7e9388; padding:9px 10px; text-align:left; min-height:0; font-size:.78rem; }
+    .stage-track button.active { background:var(--lime); color:#0a1512; font-weight:700; }
+    .insight-card { border-left:4px solid var(--lime); background:#15251f!important; padding:16px; }
+    .insight-card strong { color:var(--lime); }
+    .result-card { margin-top:16px; padding:18px; background:#d8ff45!important; color:#0a1512; border-radius:16px; }
+    .result-card h3 { font-size:1.25rem; font-weight:800; }
+    .result-card p { margin-top:5px; font-size:.9rem; }
+    .video-portrait { aspect-ratio:9 / 16!important; max-height:min(76vh,720px); }
+    .video-landscape { aspect-ratio:16 / 9!important; }
+    @media (max-width:760px) { main { padding:18px 14px!important; } .motion-intro { display:block; } .motion-intro p { margin-top:10px; } header p { display:none; } .stage-track { gap:5px; } .stage-track button { padding:8px 6px; font-size:.7rem; } .video-portrait { width:min(100%,420px); margin-inline:auto; } .flex.flex-wrap.items-center.justify-between { display:grid!important; grid-template-columns:1fr; } .flex.flex-wrap.items-center.justify-between > div { justify-content:center; } }
+    .slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0,0,0,0.4);
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
 
@@ -42,59 +65,43 @@
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-4 py-3">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-lime-300 flex items-center justify-center font-black text-sm text-slate-950 shadow-none" aria-hidden="true">
-          AI
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/20">
+          ⚾
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            棒球動作檢視器
+            棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.8</span>
           </h1>
-          <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
+          <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
       </div>
 
-
+      <div class="flex items-center gap-2">
+        <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">手機拍攝</button>
+        <label for="videoInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
+          <span>選一段影片開始玩</span>
+          <input type="file" id="videoInput" accept="video/*" capture="environment" class="hidden">
+        </label>
+        <button id="btnDemo" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">
+          先看示範
+        </button>
+      </div>
     </div>
   </header>
 
+  <section class="max-w-7xl mx-auto w-full px-6 pt-8 motion-intro">
+    <div><h2>看看你的動作，AI 會抓到什麼</h2></div>
+    <p>上傳一段投球、打擊或跑壘影片，拖著時間軸逐格看看身體怎麼動。</p>
+  </section>
 
-  <dialog id="captureDialog" aria-labelledby="captureTitle">
-    <div class="capture-heading"><h2 id="captureTitle">對位拍攝</h2><button type="button" id="captureClose" aria-label="關閉相機">✕</button></div>
-    <div class="capture-options"><label>動作 <select id="captureMode"><option value="pitch">投球</option><option value="hit">打擊</option></select></label><label><input type="checkbox" id="captureGuideToggle" checked>顯示對位框</label></div>
-    <p class="capture-tip">側面拍攝 · 鏡頭固定 · 頭、手、腳及球棒全程入鏡，四周預留空間</p>
-    <div id="captureViewport">
-      <video id="capturePreview" autoplay muted playsinline></video>
-      <svg id="captureGuide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="全身對位與動作空間參考框">
-        <rect x="8" y="7" width="84" height="84" rx="3" fill="none" stroke="#bce4cd" stroke-dasharray="3 2" stroke-width=".45"/>
-        <path d="M18 88H82" stroke="#fff" stroke-width=".6"/>
-        <g id="capturePerson" fill="none" stroke="#bce4cd" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85">
-          <ellipse cx="48" cy="25" rx="4" ry="6"/><path d="M48 32L49 56M48 37L36 43L29 31M48 37L60 31L67 19M49 56L34 68L25 86M49 56L62 73L73 86"/>
-        </g>
-        <text x="50" y="97" text-anchor="middle" fill="#e6f1e9" font-size="3">腳底基準線 · 框線僅為構圖參考</text>
-      </svg>
-    </div>
-    <p id="captureStatus" role="status" aria-live="polite">正在開啟相機…</p>
-    <div class="capture-actions"><button type="button" id="captureEnable">啟動相機</button><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用系統來源</button></div>
-    <p class="capture-tip">先按「啟動相機」並允許權限；若在 LINE 等 App 內開啟，對位錄影請改用 Safari／Chrome。「×」只會關閉視窗。每段最長 60 秒，錄影不含聲音、框線及骨架。</p>
-  </dialog>
   <!-- Main Content Grid -->
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
 
     <!-- Left / Center: Video & Canvas Player (3 Cols) -->
-    <div id="playerColumn" class="lg:col-span-4 flex flex-col gap-3">
-      <!-- Compact mobile source controls; accessible after the empty state disappears -->
-      <div class="mobile-source-actions source-toolbar" aria-label="影片來源">
-        <button type="button" id="changeVideo" class="mobile-source-primary">更換影片</button>
-        <button type="button" id="btnCamera" hidden aria-hidden="true" tabindex="-1">對位錄影</button>
-        <button type="button" id="btnDemo" hidden aria-hidden="true" tabindex="-1">示範</button>
-        <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
-        <input type="file" id="libraryInput" accept="video/*" class="hidden">
-        <input type="file" id="videoInput" accept="video/*" class="hidden">
-      </div>
+    <div class="lg:col-span-3 flex flex-col gap-3">
       <!-- Video Screen Container -->
-      <div id="videoStage" class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
+      <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
         <!-- Hidden video element -->
         <video id="videoEl" playsinline crossorigin="anonymous" class="hidden"></video>
         <!-- Overlay Canvas for Drawing Video + Pose Skeleton -->
@@ -103,9 +110,9 @@
 
         <!-- Empty State Prompt -->
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
-          <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
-          <button type="button" id="sourceSelect" class="empty-source-button">選擇影片</button>
-
+          <div class="text-5xl mb-3 text-lime-300">⌁</div>
+          <p class="text-xl font-bold text-white mb-2">把一段動作放進來</p>
+          <p class="text-sm text-slate-400 max-w-md">上傳影片，或先載入示範動作。影片只在你的瀏覽器裡分析，不會上傳。</p>
         </div>
 
         <!-- Processing indicator badge -->
@@ -120,70 +127,76 @@
         </div>
       </div>
 
-      <div id="controlPanel" aria-label="影片分析功能">
-      <!-- Playback controls live outside the video so they never cover the athlete. -->
-      <div id="floatingPlayback" class="floating-playback hidden" role="group" aria-label="影片播放控制">
-        <div class="control-section-title">播放控制</div>
-        <div class="floating-playback-row">
-          <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">-5</button>
-          <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95"><span>-1</span></button>
-          <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1"><span id="playIcon">▶ 播放</span></button>
-          <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95"><span>+1</span></button>
-          <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">+5</button>
-          <button id="btnLoop" type="button" aria-pressed="false" title="開啟循環播放" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95">循環</button>
-        </div>
+      <div class="stage-track" aria-label="動作階段">
+        <button class="active" type="button">準備</button><button type="button">跨步</button><button type="button">出手</button><button type="button">收勢</button>
       </div>
 
-      <!-- Reframing controls: crop only the display, not the original source. -->
-      <div id="videoFraming" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片取景">
-        <div class="control-section-title">人物取景</div>
-        <label for="frameZoom" class="text-xs text-slate-300">縮放 <span id="frameZoomValue">1.0×</span></label>
-        <input id="frameZoom" class="flex-1 min-w-24 max-w-52 accent-lime-300" type="range" min="1" max="3" step="0.1" value="1" aria-label="影片縮放倍率">
-        <button id="btnResetFraming" type="button" class="bg-slate-800 text-xs px-3 py-2 rounded-md">還原取景</button>
-        <button id="btnLockFraming" type="button" aria-pressed="false" class="bg-slate-800 text-xs px-3 py-2 rounded-md" title="鎖定人物取景與遮罩位置">鎖定取景</button>
-        <span class="text-xs text-slate-400">放大後拖曳人物調整位置，原始影片不變</span>
+      <div class="flex flex-wrap items-center gap-2 mb-3" aria-label="畫面標記工具">
+        <span class="text-xs text-slate-400 mr-1">畫面標記</span>
+        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
+        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
+        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">量角度</button>
+        <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
+        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto">選一個工具，在畫面上拖曳</span>
       </div>
 
       <!-- Video Control Deck -->
-      <div id="videoDeck" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
-        <div class="control-section-title">逐格時間軸</div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
         <!-- Scrubber Slider -->
         <div class="flex items-center gap-3">
           <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
-          <input type="range" id="scrubber" min="0" max="0" value="0" step="1" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer" aria-label="影片逐格時間軸">
+          <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
           <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
         </div>
 
-      </div>
+        <!-- Action Buttons Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+          <!-- Playback Buttons -->
+          <div class="flex items-center gap-1.5">
+            <button id="btnPrev5" title="倒退 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">⏮ -5幀</button>
+            <button id="btnPrev1" title="倒退 1 幀 (鍵盤左鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
+              <span>◀ -1 格</span>
+            </button>
+            <button id="btnPlayPause" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-md font-bold transition active:scale-95 shadow-md flex items-center gap-1">
+              <span id="playIcon">▶ 播放</span>
+            </button>
+            <button id="btnNext1" title="前進 1 幀 (鍵盤右鍵)" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-md font-semibold border border-slate-700 transition active:scale-95 flex items-center gap-1">
+              <span>+1 格 ▶</span>
+            </button>
+            <button id="btnNext5" title="前進 5 幀" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-md font-mono border border-slate-700 transition active:scale-95">+5幀 ⏭</button>
+          </div>
 
-      <!-- Drawing tools stay grouped, away from the primary playback controls. -->
-      <div id="imageTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
-        <div class="control-section-title">畫面工具</div>
-        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
-        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
-        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">角度參考線</button>
-        <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
-        <span class="hidden sm:block h-6 border-l border-slate-700 mx-1" aria-hidden="true"></span>
-        <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
-      </div>
+          <!-- Speed Toggles -->
+          <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 px-1 font-medium">慢速:</span>
+            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.1">0.1x</button>
+            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.25">0.25x</button>
+            <button class="speed-btn px-2 py-0.5 rounded text-xs text-slate-300 hover:bg-slate-800" data-speed="0.5">0.5x</button>
+            <button class="speed-btn px-2 py-0.5 rounded text-xs bg-blue-600 text-white font-medium" data-speed="1.0">1.0x</button>
+          </div>
 
-      <div id="exportTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3" aria-label="匯出工具">
-        <div class="control-section-title">匯出工具</div>
-        <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載當前高解析度截圖">留下這一格</button>
-        <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-md font-medium" title="下載目前影片的取景與骨架分析影片">下載分析影片</button>
-      </div>
+          <!-- Tools (Screenshot / Video Export) -->
+          <div class="flex items-center gap-1.5">
+            <button id="btnSnapshot" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition active:scale-95 flex items-center gap-1 shadow-sm" title="下載當前高解析度截圖">
+              留下這一格
+            </button>
+            <button id="btnExportVideo" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition active:scale-95 flex items-center gap-1 shadow-sm" title="將整段影片燒錄骨架並匯出成新影片">
+              下載分析影片
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Detailed diagnostics stay below the primary player workflow. -->
-    <div id="diagnosticPanel" class="lg:col-span-4 flex flex-col gap-3">
+    <!-- Right: Biomechanics & Angles Diagnostic Panel (1 Col) -->
+    <div class="flex flex-col gap-3">
       <!-- Pose & Angles Telemetry Card -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-lg">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
-            畫面觀測值
+            AI 正在看這個動作
           </h2>
-          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">2D 參考</span>
+          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">即時分析</span>
         </div>
 
         <div class="insight-card"><strong>動作亮點</strong><p class="text-sm text-slate-200 mt-1">先載入影片，AI 會在這裡告訴你目前看見的重點。</p></div>
@@ -215,7 +228,7 @@
         <!-- Angle metric: Lead Knee -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
           <div class="flex justify-between items-center text-xs mb-1">
-            <span class="text-slate-400 font-medium">左膝夾角</span>
+            <span class="text-slate-400 font-medium">前膝伸展角度 (前腳煞車)</span>
             <span id="leadKneeAngle" class="text-emerald-400 font-bold font-mono text-sm">--°</span>
           </div>
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -227,7 +240,7 @@
         <!-- Angle metric: Hip-Shoulder Separation Proxy -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
           <div class="flex justify-between items-center text-xs mb-1">
-            <span class="text-slate-400 font-medium">軀幹影像傾角</span>
+            <span class="text-slate-400 font-medium">軀幹側傾角度 (Spine Tilt)</span>
             <span id="trunkTiltAngle" class="text-amber-400 font-bold font-mono text-sm">--°</span>
           </div>
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -239,24 +252,14 @@
         <!-- Display Toggles -->
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
-          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>流暢播放（播放時暫停 AI）</span><input type="checkbox" id="playbackPriority" checked></label>
-          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>AI 動作辨識</span><input type="checkbox" id="toggleAI" checked></label>
-          <p class="text-[10px] text-slate-400">預設播放時暫停 AI，保持影片流暢；暫停或逐格時辨識。取消勾選可在播放時顯示骨架，但可能掉幀。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
-            <span>顯示身體骨架與中心參考線</span>
+            <span>顯示彩色關節點點</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
           </label>
-          <p class="text-[10px] text-slate-400">預設顯示肩髖四邊形（淺藍）、頭部中心估計（粉紅十字）、軀幹中心線（綠）、軀幹幾何中點（橘）與影像垂直參考線（黃）。此為 2D 幾何參考，不是實際脊椎骨位置、頭部或全身質量中心。</p>
-          <div class="border-t border-slate-800 pt-3">
-            <span class="text-xs font-semibold text-slate-300">影片角度（勾選才顯示）</span>
-            <div class="grid grid-cols-2 gap-2 mt-2" id="angleDisplayOptions">
-              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="rightElbow" checked>右肘</label>
-              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="leftElbow">左肘</label>
-              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="leftKnee" checked>左膝</label>
-              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="rightKnee">右膝</label>
-              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-angle="trunk">軀幹傾斜</label>
-            </div>
-          </div>
+          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
+            <span>顯示即時角度數值標籤</span>
+            <input type="checkbox" id="toggleAngleLabels" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+          </label>
         </div>
       </div>
 
@@ -282,52 +285,22 @@
     </div>
   </main>
 
-
-  <script>
-  // Build one consistent workspace without duplicating controls or event handlers.
-  const panel = document.getElementById('controlPanel');
-  panel.prepend(document.getElementById('videoDeck'));
-  for (const [id, title] of [['videoFraming','取景與縮放'], ['imageTools','畫線與標記']]) {
-    const section = document.getElementById(id);
-    const details = document.createElement('details');
-    details.className = 'tool-disclosure';
-    const summary = document.createElement('summary'); summary.textContent = title;
-    details.append(summary, section); panel.insertBefore(details, document.getElementById('exportTools'));
-  }
-  const speeds = document.createElement('div'); speeds.id = 'speedRow'; speeds.setAttribute('aria-label','播放速度');
-  speeds.innerHTML = '<span>播放速度</span>' + [0.25,0.5,0.75,1].map(n => `<button type="button" class="speed-btn" data-speed="${n}" aria-pressed="${n===1}">${n}×</button>`).join('');
-  document.getElementById('floatingPlayback').append(speeds);
-  const note = document.createElement('p'); note.id='workspaceNote'; note.innerHTML='<strong>影片在此裝置處理</strong> · 逐格以 30 fps 估算 · 角度為 2D 影像參考';
-  document.getElementById('playerColumn').append(note);
-  document.getElementById('statusText').setAttribute('role','status');
-  document.getElementById('statusText').setAttribute('aria-live','polite');
-  document.getElementById('dropPrompt').addEventListener('click', event => event.stopPropagation());
-  </script>
   <script>
     // State & Elements
     const video = document.getElementById('videoEl');
     const canvas = document.getElementById('outputCanvas');
     const ctx = canvas.getContext('2d');
-    const frameZoomInput = document.getElementById('frameZoom');
-    const frameZoomValue = document.getElementById('frameZoomValue');
-    const btnResetFraming = document.getElementById('btnResetFraming');
-    const btnLockFraming = document.getElementById('btnLockFraming');
     const annotationCanvas = document.getElementById('annotationCanvas');
     const annotationCtx = annotationCanvas.getContext('2d');
     let annotationTool = null;
     let annotationStart = null;
     let annotationDrawing = false;
     const videoInput = document.getElementById('videoInput');
-    const cameraInput = document.getElementById('cameraInput');
-    const libraryInput = document.getElementById('libraryInput');
     const dropPrompt = document.getElementById('dropPrompt');
     const scrubber = document.getElementById('scrubber');
     const timeDisplay = document.getElementById('timeDisplay');
     const durationDisplay = document.getElementById('durationDisplay');
     const btnPlayPause = document.getElementById('btnPlayPause');
-    const btnLoop = document.getElementById('btnLoop');
-    const floatingPlayback = document.getElementById('floatingPlayback');
-    const playerColumn = document.getElementById('playerColumn');
     const playIcon = document.getElementById('playIcon');
     const btnPrev1 = document.getElementById('btnPrev1');
     const btnNext1 = document.getElementById('btnNext1');
@@ -343,15 +316,7 @@
     const currentTimeText = document.getElementById('currentTimeText');
     const speedButtons = document.querySelectorAll('.speed-btn');
     const toggleSkeleton = document.getElementById('toggleSkeleton');
-    const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
-    let selectedAngleIds = new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
-    const selectedAngles = () => selectedAngleIds;
-    let bodyPoseConnectionsCache = null;
-    function revealPlaybackControls() {
-      playerColumn.classList.add('has-video');
-      floatingPlayback.classList.remove('hidden');
-      playerColumn.classList.add('landscape-controls-ready');
-    }
+    const toggleAngleLabels = document.getElementById('toggleAngleLabels');
 
     function fitAnnotationCanvas() {
       const rect = annotationCanvas.getBoundingClientRect();
@@ -361,12 +326,6 @@
       annotationCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
     window.addEventListener('resize', fitAnnotationCanvas);
-    document.querySelectorAll('.tool-disclosure').forEach(item => item.addEventListener('toggle', () => {
-      if (!item.open && item.contains(document.getElementById('imageTools'))) {
-        annotationTool = null; annotationCanvas.style.pointerEvents = 'none';
-        document.querySelectorAll('.annotation-tool').forEach(button => { button.setAttribute('aria-pressed','false'); button.classList.remove('bg-lime-300','text-slate-950'); });
-      }
-    }));
     function pointOnAnnotation(event) {
       const rect = annotationCanvas.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -386,15 +345,14 @@
     }
     annotationCanvas.addEventListener('pointerdown', event => { if (!annotationTool) return; annotationDrawing = true; annotationStart = pointOnAnnotation(event); annotationCanvas.setPointerCapture(event.pointerId); });
     annotationCanvas.addEventListener('pointermove', drawAnnotation);
-    annotationCanvas.addEventListener('pointerup', event => { drawAnnotation(event); annotationDrawing = false; });
+    annotationCanvas.addEventListener('pointerup', event => { annotationDrawing = false; drawAnnotation(event); });
     document.querySelectorAll('.annotation-tool').forEach(tool => tool.addEventListener('click', () => {
-      annotationTool = annotationTool === tool.dataset.tool ? null : tool.dataset.tool;
-      annotationCanvas.style.pointerEvents = annotationTool ? 'auto' : 'none';
+      annotationTool = tool.dataset.tool;
+      annotationCanvas.style.pointerEvents = 'auto';
       document.querySelectorAll('.annotation-tool').forEach(item => item.classList.remove('bg-lime-300', 'text-slate-950'));
-      if (annotationTool) tool.classList.add('bg-lime-300', 'text-slate-950');
-      document.querySelectorAll('.annotation-tool').forEach(item => item.setAttribute('aria-pressed', String(item.dataset.tool === annotationTool)));
-      document.getElementById('annotationStatus').textContent = annotationTool ? `${tool.textContent}：在影片上拖曳，再按一次可退出` : '標記工具已關閉，可拖曳取景';
-      if (!annotationCanvas.width || annotationCanvas.width === 300) fitAnnotationCanvas();
+      tool.classList.add('bg-lime-300', 'text-slate-950');
+      document.getElementById('annotationStatus').textContent = `${tool.textContent}：在影片上拖曳`;
+      fitAnnotationCanvas();
     }));
     document.getElementById('clearAnnotations').addEventListener('click', () => { annotationCtx.clearRect(0, 0, annotationCanvas.clientWidth, annotationCanvas.clientHeight); });
 
@@ -408,86 +366,21 @@
     const trunkTiltAngleText = document.getElementById('trunkTiltAngle');
     const trunkTiltBar = document.getElementById('trunkTiltBar');
 
-    let originalResolutionRender = false;
     let isPlaying = false;
-    let loopEnabled = false;
     let fps = 30; // default estimated fps
     let frameDuration = 1 / fps;
-    let pendingSeekTime = null;
-    let isScrubbing = false;
     let animationFrameId = null;
     let currentPoseLandmarks = null;
     let isProcessingPose = false;
-    let frameZoom = 1;
-    let framePanX = 0;
-    let framePanY = 0;
-    let frameDrag = null;
-    let framingLocked = false;
-    function clampFramePan() {
-      const bound = (frameZoom - 1) / 2;
-      framePanX = Math.max(-bound, Math.min(bound, framePanX));
-      framePanY = Math.max(-bound, Math.min(bound, framePanY));
-    }
-    function applyFraming() {
-      clampFramePan();
-      frameZoomValue.textContent = frameZoom.toFixed(1) + '×';
-      canvas.classList.toggle('frame-pan-active', frameZoom > 1);
-      renderCurrentFrame();
-    }
-    function resetFraming() {
-      frameZoom = 1;
-      framePanX = framePanY = 0;
-      frameZoomInput.value = '1';
-      applyFraming();
-    }
-    frameZoomInput.addEventListener('input', () => {
-      frameZoom = Number(frameZoomInput.value);
-      applyFraming();
-    });
-    btnResetFraming.addEventListener('click', resetFraming);
-    btnLockFraming.addEventListener('click', () => {
-      framingLocked = !framingLocked;
-      btnLockFraming.setAttribute('aria-pressed', String(framingLocked));
-      btnLockFraming.textContent = framingLocked ? '已鎖定取景' : '鎖定取景';
-      btnLockFraming.classList.toggle('bg-blue-600', framingLocked);
-      btnLockFraming.classList.toggle('text-white', framingLocked);
-      frameZoomInput.disabled = framingLocked;
-      btnResetFraming.disabled = framingLocked;
-      canvas.classList.toggle('frame-pan-active', frameZoom > 1 && !framingLocked);
-      statusText.textContent = framingLocked ? '人物取景已鎖定' : '人物取景可調整';
-    });
-    canvas.addEventListener('pointerdown', event => {
-      if (framingLocked || frameZoom <= 1 || annotationTool || isExporting) return;
-      frameDrag = { id:event.pointerId, x:event.clientX, y:event.clientY, px:framePanX, py:framePanY };
-      canvas.setPointerCapture(event.pointerId);
-      event.preventDefault();
-    });
-    canvas.addEventListener('pointermove', event => {
-      if (!frameDrag || frameDrag.id !== event.pointerId) return;
-      const rect = canvas.getBoundingClientRect();
-      framePanX = frameDrag.px + (event.clientX - frameDrag.x) / rect.width;
-      framePanY = frameDrag.py + (event.clientY - frameDrag.y) / rect.height;
-      applyFraming();
-    });
-    const stopFrameDrag = event => {
-      if (frameDrag && frameDrag.id === event.pointerId) frameDrag = null;
-    };
-    canvas.addEventListener('pointerup', stopFrameDrag);
-    canvas.addEventListener('pointercancel', stopFrameDrag);
-    let cameraStream = null;
 
     // Initialize MediaPipe Pose
     let pose = null;
     try {
-      const gpuProbe = document.createElement('canvas');
-      const gpuContext = gpuProbe.getContext('webgl2') || gpuProbe.getContext('webgl');
-      if (!gpuContext) throw new Error('WebGL unavailable');
-      gpuContext.getExtension('WEBGL_lose_context')?.loseContext();
       pose = new Pose({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
       });
       pose.setOptions({
-        modelComplexity: 0,
+        modelComplexity: 1,
         smoothLandmarks: true,
         enableSegmentation: false,
         minDetectionConfidence: 0.5,
@@ -497,7 +390,7 @@
       statusText.textContent = "AI 模型加載完成";
     } catch (err) {
       console.warn("MediaPipe load error:", err);
-      statusText.textContent = "AI 無法啟用，可使用影片檢視工具";
+      statusText.textContent = "AI 離線或模擬模式";
     }
 
     // Mathematical Angle Calculator: angle between vectors AB and BC (joint B is vertex)
@@ -513,168 +406,61 @@
 
     // MediaPipe Pose Results Handler
     function onPoseResults(results) {
-      if (isPlaying && document.getElementById('playbackPriority').checked) { currentPoseLandmarks = null; return; }
-      currentPoseLandmarks = document.getElementById('toggleAI').checked ? results.poseLandmarks || null : null;
-      if (!isPlaying && video.videoWidth && video.videoHeight) renderCurrentFrame();
-    }
-
-    // Visual 2D reference markers, NOT an anatomical spine or physical center of mass.
-    function drawBodyCenterGuides(lm) {
-      const visible = index => lm[index] && Number.isFinite(lm[index].x) &&
-        Number.isFinite(lm[index].y) && (lm[index].visibility == null || lm[index].visibility >= 0.45);
-      const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-      if (![11, 12, 23, 24].every(visible)) return;
-
-      const shoulders = mid(lm[11], lm[12]);
-      const hips = mid(lm[23], lm[24]);
-      const torsoCenter = mid(shoulders, hips);
-      // Prefer both ears (more central in frontal views); nose is a fallback proxy.
-      const head = visible(7) && visible(8) ? mid(lm[7], lm[8]) :
-        visible(0) ? { x: lm[0].x, y: lm[0].y } : null;
-      const w = canvas.width, h = canvas.height;
-      const x = p => p.x * w, y = p => p.y * h;
-      const lineWidth = Math.max(2, w / 310);
-      const circle = (p, color, size) => {
-        ctx.beginPath();
-        ctx.arc(x(p), y(p), size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = Math.max(1.2, w / 850);
-        ctx.stroke();
-      };
-
-      ctx.save();
-      ctx.lineCap = 'round';
-      // Projected torso quadrilateral: left shoulder / right shoulder / right hip / left hip.
-      // Do not interpret the polygon as a reconstructed 3D body.
-      const torsoQuadrilateral = [11, 12, 24, 23].map(index => lm[index]);
-      ctx.beginPath();
-      ctx.moveTo(x(torsoQuadrilateral[0]), y(torsoQuadrilateral[0]));
-      torsoQuadrilateral.slice(1).forEach(point => ctx.lineTo(x(point), y(point)));
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(102,223,255,0.11)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(102,223,255,0.75)';
-      ctx.lineWidth = Math.max(1.5, lineWidth * .65);
-      ctx.stroke();
-
-      // Pink head-center proxy and neck reference, green shoulder-to-hip trunk axis.
-      if (head) {
-        ctx.beginPath();
-        ctx.moveTo(x(head), y(head));
-        ctx.lineTo(x(shoulders), y(shoulders));
-        ctx.strokeStyle = '#ff6dae';
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
-      }
-      ctx.beginPath();
-      ctx.moveTo(x(shoulders), y(shoulders));
-      ctx.lineTo(x(hips), y(hips));
-      ctx.strokeStyle = '#a7ff43';
-      ctx.lineWidth = lineWidth * 1.4;
-      ctx.stroke();
-
-      // Image-space vertical reference extends to visible foot level.
-      // It is deliberately NOT labeled as ground projection of CoM.
-      const feet = [27, 28, 29, 30, 31, 32].filter(visible);
-      if (feet.length) {
-        const baseline = Math.min(h, Math.max(...feet.map(i => y(lm[i]))));
-        if (baseline > y(torsoCenter)) {
-          ctx.beginPath();
-          ctx.setLineDash([Math.max(5, w / 100), Math.max(5, w / 120)]);
-          ctx.moveTo(x(torsoCenter), y(torsoCenter));
-          ctx.lineTo(x(torsoCenter), baseline);
-          ctx.strokeStyle = '#ffe45c';
-          ctx.lineWidth = Math.max(1.5, lineWidth * .75);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          circle({ x: torsoCenter.x, y: baseline / h }, '#ffe45c', Math.max(3, w / 190));
-        }
-      }
-      circle(shoulders, '#66dfff', Math.max(3, w / 190));
-      circle(hips, '#66dfff', Math.max(3, w / 190));
-      circle(torsoCenter, '#ffb02e', Math.max(4, w / 160));
-      if (head) {
-        // Head-center proxy: midpoint between visible ears, or nose fallback.
-        // Crosshair makes this distinguishable from the original facial landmark dots.
-        const headRadius = Math.max(5, w / 150);
-        circle(head, '#ff6dae', headRadius);
-        ctx.strokeStyle = '#ff6dae';
-        ctx.lineWidth = Math.max(1.5, lineWidth * .6);
-        ctx.beginPath();
-        ctx.moveTo(x(head) - headRadius * 1.8, y(head));
-        ctx.lineTo(x(head) + headRadius * 1.8, y(head));
-        ctx.moveTo(x(head), y(head) - headRadius * 1.8);
-        ctx.lineTo(x(head), y(head) + headRadius * 1.8);
-        ctx.stroke();
-      }
-      ctx.restore();
+      currentPoseLandmarks = results.poseLandmarks || null;
+      renderCurrentFrame();
     }
 
     // Draw Video Frame and Pose Overlays
     function renderCurrentFrame() {
       if (!video.videoWidth || !video.videoHeight) return;
 
-      const previewScale = originalResolutionRender || isExporting ? 1 : Math.min(1, 960 / Math.max(video.videoWidth, video.videoHeight));
-      const renderWidth = Math.max(1, Math.round(video.videoWidth * previewScale));
-      const renderHeight = Math.max(1, Math.round(video.videoHeight * previewScale));
-      if (canvas.width !== renderWidth || canvas.height !== renderHeight) {
-        canvas.width = renderWidth; canvas.height = renderHeight;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
       }
 
-      // Transform footage AND pose overlays together. Canvas bounds are the crop mask.
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      // Draw original video frame
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.translate(canvas.width * (0.5 + framePanX), canvas.height * (0.5 + framePanY));
-      ctx.scale(frameZoom, frameZoom);
-      ctx.translate(-canvas.width / 2, -canvas.height / 2);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Keep all 33 landmarks for calculations, but hide facial nodes (0–10).
+      // Draw Pose Landmarks if enabled
       if (currentPoseLandmarks && toggleSkeleton.checked) {
+        // Draw Skeleton Lines
         if (window.drawConnectors) {
-          const bodyConnections = bodyPoseConnectionsCache || (bodyPoseConnectionsCache = POSE_CONNECTIONS.filter(([start, end]) => start >= 11 && end >= 11));
-          drawConnectors(ctx, currentPoseLandmarks, bodyConnections, {
+          drawConnectors(ctx, currentPoseLandmarks, POSE_CONNECTIONS, {
             color: '#ef4444',
             lineWidth: Math.max(2, Math.round(canvas.width / 400))
           });
         }
+
+        // Draw Skeleton Dots
         if (window.drawLandmarks) {
-          const bodyLandmarks = currentPoseLandmarks.slice(11);
-          drawLandmarks(ctx, bodyLandmarks, {
+          drawLandmarks(ctx, currentPoseLandmarks, {
             color: '#10b981',
             fillColor: '#34d399',
             lineWidth: 1,
-            radius: Math.max(2, Math.round(canvas.width / 250 * 0.75))
+            radius: Math.max(3, Math.round(canvas.width / 250))
           });
         }
-        drawBodyCenterGuides(currentPoseLandmarks);
+
+        // Calculate and Draw Key Baseball Angles
+        updateBiomechanics(currentPoseLandmarks);
       }
-      // Numeric angles can be toggled independently of the skeleton.
-      if (currentPoseLandmarks) updateBiomechanics(currentPoseLandmarks);
-      ctx.restore();
 
       // Update counters
       const curTime = video.currentTime || 0;
-      const uiNow = performance.now();
-      if (!isPlaying || uiNow - lastPlaybackUiUpdateAt >= 100) {
-        lastPlaybackUiUpdateAt = uiNow;
-        const curFrame = Math.round(curTime * fps);
-        currentFrameText.textContent = curFrame;
-        currentTimeText.textContent = curTime.toFixed(2) + "s";
-        timeDisplay.textContent = formatTime(curTime);
-        if (video.duration && !isScrubbing && pendingSeekTime === null) {
-          scrubber.value = String(Math.round(curTime * fps));
-        }
+      const curFrame = Math.round(curTime * fps);
+      currentFrameText.textContent = curFrame;
+      currentTimeText.textContent = curTime.toFixed(2) + "s";
+      timeDisplay.textContent = formatTime(curTime);
+      if (video.duration) {
+        scrubber.value = (curTime / video.duration) * 100;
       }
     }
 
     // Update Telemetry Panel & Canvas Angle Overlays
     function updateBiomechanics(lm) {
       if (!lm) return;
-      const refreshReadouts = lm !== lastBiomechanicsLandmarks;
       const w = canvas.width;
       const h = canvas.height;
 
@@ -688,92 +474,63 @@
 
       // 1. Right Elbow Angle (12-14-16)
       const rElbow = calculateAngle(lm[12], lm[14], lm[16]);
-      if (refreshReadouts) {
-        rightElbowAngleText.textContent = rElbow + "°";
-        rightElbowBar.style.width = Math.min(100, (rElbow / 180) * 100) + "%";
-      }
+      rightElbowAngleText.textContent = rElbow + "°";
+      rightElbowBar.style.width = Math.min(100, (rElbow / 180) * 100) + "%";
 
       // 2. Left Elbow Angle (11-13-15)
       const lElbow = calculateAngle(lm[11], lm[13], lm[15]);
-      if (refreshReadouts) {
-        leftElbowAngleText.textContent = lElbow + "°";
-        leftElbowBar.style.width = Math.min(100, (lElbow / 180) * 100) + "%";
-      }
+      leftElbowAngleText.textContent = lElbow + "°";
+      leftElbowBar.style.width = Math.min(100, (lElbow / 180) * 100) + "%";
 
       // 3. Lead Knee (Check left knee 23-25-27 or right knee 24-26-28)
       const lKnee = calculateAngle(lm[23], lm[25], lm[27]);
-      if (refreshReadouts) {
-        leadKneeAngleText.textContent = lKnee + "°";
-        leadKneeBar.style.width = Math.min(100, (lKnee / 180) * 100) + "%";
-      }
+      leadKneeAngleText.textContent = lKnee + "°";
+      leadKneeBar.style.width = Math.min(100, (lKnee / 180) * 100) + "%";
 
       // 4. Spine / Trunk Tilt (Mid-Hip to Mid-Shoulder relative to vertical)
       const midShoulder = { x: (lm[11].x + lm[12].x) / 2, y: (lm[11].y + lm[12].y) / 2 };
       const midHip = { x: (lm[23].x + lm[24].x) / 2, y: (lm[23].y + lm[24].y) / 2 };
       const verticalPt = { x: midHip.x, y: midHip.y - 0.5 };
       const trunkTilt = calculateAngle(verticalPt, midHip, midShoulder);
-      if (refreshReadouts) {
-        trunkTiltAngleText.textContent = trunkTilt + "°";
-        trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
+      trunkTiltAngleText.textContent = trunkTilt + "°";
+      trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
+
+      // Draw angle text on Canvas if enabled
+      if (toggleAngleLabels.checked) {
+        ctx.save();
+        ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
+        ctx.fillStyle = '#60a5fa';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+
+        // Draw Right Elbow Angle tag
+        if (lm[14] && lm[14].visibility > 0.5) {
+          const px = lm[14].x * w + 12;
+          const py = lm[14].y * h;
+          ctx.strokeText(`右肘: ${rElbow}°`, px, py);
+          ctx.fillText(`右肘: ${rElbow}°`, px, py);
+        }
+
+        // Draw Left Knee Angle tag
+        if (lm[25] && lm[25].visibility > 0.5) {
+          const px = lm[25].x * w + 12;
+          const py = lm[25].y * h;
+          ctx.fillStyle = '#34d399';
+          ctx.strokeText(`前膝: ${lKnee}°`, px, py);
+          ctx.fillText(`前膝: ${lKnee}°`, px, py);
+        }
+        ctx.restore();
       }
-
-      if (refreshReadouts) lastBiomechanicsLandmarks = lm;
-
-      // Display selected 2D projection angles only; no extra face landmarks.
-      const rightKnee = calculateAngle(lm[24], lm[26], lm[28]);
-      const angles = [
-        { id: 'rightElbow', title: '右肘', angle: rElbow, point: lm[14], color: '#60a5fa' },
-        { id: 'leftElbow', title: '左肘', angle: lElbow, point: lm[13], color: '#a5b4fc' },
-        { id: 'leftKnee', title: '左膝', angle: lKnee, point: lm[25], color: '#34d399' },
-        { id: 'rightKnee', title: '右膝', angle: rightKnee, point: lm[26], color: '#2dd4bf' },
-        { id: 'trunk', title: '軀幹', angle: trunkTilt, point: midShoulder, color: '#fbbf24' }
-      ];
-      const enabled = selectedAngles();
-      ctx.save();
-      ctx.font = `bold ${Math.max(14, Math.round(w / 60))}px monospace`;
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      angles.forEach(item => {
-        if (!enabled.has(item.id) || !item.point || (item.point.visibility != null && item.point.visibility <= 0.5)) return;
-        const px = item.point.x * w + 12;
-        const py = item.point.y * h;
-        ctx.fillStyle = item.color;
-        const label = `${item.title}: ${item.angle}°`;
-        ctx.strokeText(label, px, py);
-        ctx.fillText(label, px, py);
-      });
-      ctx.restore();
     }
 
-    const poseInputCanvas = document.createElement('canvas');
-    const poseInputContext = poseInputCanvas.getContext('2d', { alpha:false });
-    let lastPoseStartedAt = -Infinity;
-    let lastPaintedVideoTime = -1;
-    let lastPlaybackUiUpdateAt = 0;
-    let lastBiomechanicsLandmarks = null;
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame() {
-      if (!pose || isProcessingPose || !video.videoWidth || video.readyState < 2 || !document.getElementById('toggleAI').checked) return;
-      if (isPlaying && document.getElementById('playbackPriority').checked) return;
-      const now = performance.now();
-      if (isPlaying && now - lastPoseStartedAt < 100) return;
-      lastPoseStartedAt = now;
+      if (!pose || isProcessingPose || !video.videoWidth) return;
       isProcessingPose = true;
       try {
-        // Preserve aspect ratio while keeping inference independent of 1080p/4K source size.
-        const inferenceLimit = isPlaying ? 512 : 640;
-        const scale = Math.min(1, inferenceLimit / Math.max(video.videoWidth, video.videoHeight));
-        const width = Math.max(1, Math.round(video.videoWidth * scale));
-        const height = Math.max(1, Math.round(video.videoHeight * scale));
-        if (poseInputCanvas.width !== width || poseInputCanvas.height !== height) {
-          poseInputCanvas.width = width; poseInputCanvas.height = height;
-        }
-        poseInputContext.drawImage(video, 0, 0, width, height);
-        await pose.send({ image: poseInputCanvas });
+        await pose.send({ image: video });
       } catch (err) {
         console.warn("Pose evaluation error:", err);
-        pose = null; currentPoseLandmarks = null;
-        statusText.textContent = "AI 暫停，仍可播放與逐格檢視";
       } finally {
         isProcessingPose = false;
       }
@@ -781,27 +538,14 @@
 
     // Playback loop
     function startPlaybackLoop() {
-      // A new play event replaces the existing loop instead of multiplying it.
-      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
-      const tick = () => {
-        animationFrameId = null;
-        if (!isPlaying) return;
-        if (video.currentTime !== lastPaintedVideoTime) {
-          lastPaintedVideoTime = video.currentTime;
-          renderCurrentFrame();
-          processCurrentVideoFrame();
-        }
-        animationFrameId = requestAnimationFrame(tick);
-      };
-      lastPaintedVideoTime = -1;
-      tick();
+      if (isPlaying) {
+        processCurrentVideoFrame();
+        animationFrameId = requestAnimationFrame(startPlaybackLoop);
+      }
     }
 
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
-      pauseVideo();
-      currentPoseLandmarks = null;
-      lastPaintedVideoTime = -1;
       dropPrompt.style.display = 'none';
       statusText.textContent = "載入影片中...";
 
@@ -812,22 +556,13 @@
         src = URL.createObjectURL(fileOrUrl);
       }
 
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-      revealPlaybackControls();
-      resetFraming();
       video.src = src;
       video.load();
       video.onloadedmetadata = () => {
-        renderCurrentFrame();
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
         durationDisplay.textContent = formatTime(video.duration);
-        const totalFrames = Math.max(0, Math.round(video.duration * fps));
-        totalFramesText.textContent = totalFrames;
-        scrubber.max = String(totalFrames);
-        scrubber.step = '1';
-        scrubber.value = '0';
+        totalFramesText.textContent = Math.round(video.duration * fps);
         statusText.textContent = `解析度: ${video.videoWidth}x${video.videoHeight}`;
         video.currentTime = 0;
         setTimeout(() => {
@@ -845,60 +580,20 @@
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms}`;
     }
 
-    // Frame stepping and draggable timeline use one seek-and-redraw path.
-    // Source FPS is not available from HTMLVideoElement; 30fps is an estimate.
-    function seekToTime(targetTime) {
-      if (video.srcObject) {
-        statusText.textContent = '即時鏡頭無法逐格跳轉，請匯入影片';
-        return;
-      }
-      if (!Number.isFinite(video.duration) || video.duration <= 0) {
-        statusText.textContent = '請先載入影片';
-        return;
-      }
-      pauseVideo();
-      const desiredTime = Math.max(0, Math.min(video.duration, targetTime));
-      pendingSeekTime = desiredTime;
-      currentPoseLandmarks = null;
-      video.currentTime = desiredTime;
-      timeDisplay.textContent = formatTime(desiredTime);
-      currentTimeText.textContent = desiredTime.toFixed(2) + 's';
-      currentFrameText.textContent = Math.round(desiredTime * fps);
-      scrubber.value = String(Math.round(desiredTime * fps));
-    }
-
+    // Step by N frames (positive or negative)
     function stepFrame(frameDelta) {
-      const base = pendingSeekTime === null ? video.currentTime : pendingSeekTime;
-      seekToTime(base + frameDelta * frameDuration);
+      pauseVideo();
+      const newTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + frameDelta * frameDuration));
+      video.currentTime = newTime;
+      video.onseeked = () => {
+        processCurrentVideoFrame();
+        video.onseeked = null;
+      };
     }
-
-    // Decode/seek events are the reliable time to repaint on iOS Safari.
-    video.addEventListener('seeked', () => {
-      // If another target is pending, do not overwrite it with stale seeks.
-      if (pendingSeekTime !== null && Math.abs(video.currentTime - pendingSeekTime) > frameDuration * 1.5) return;
-      pendingSeekTime = null;
-      renderCurrentFrame();
-      processCurrentVideoFrame();
-    });
-    video.addEventListener('loadeddata', () => {
-      if (!isPlaying) renderCurrentFrame();
-    });
 
     function playVideo() {
-      if (!video.srcObject) {
-        if (video.ended && Number.isFinite(video.duration)) video.currentTime = 0;
-        restorePlaybackSpeed();
-      }
       isPlaying = true;
-      if(document.getElementById('playbackPriority').checked) currentPoseLandmarks=null;
-      const playPromise = video.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(error => {
-          console.warn('Video playback failed:', error);
-          pauseVideo();
-          statusText.textContent = '影片無法播放，請重新匯入';
-        });
-      }
+      video.play();
       playIcon.textContent = "⏸ 暫停";
       btnPlayPause.classList.replace('bg-blue-600', 'bg-amber-600');
       btnPlayPause.classList.replace('hover:bg-blue-500', 'hover:bg-amber-500');
@@ -913,9 +608,8 @@
       btnPlayPause.classList.replace('hover:bg-amber-500', 'hover:bg-blue-500');
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
       }
-      if (!video.seeking) processCurrentVideoFrame();
+      processCurrentVideoFrame();
     }
 
     // Adapt the stage to the source video's orientation without cropping the athlete.
@@ -926,194 +620,28 @@
       fitAnnotationCanvas();
     });
 
-    // Open a real live camera preview. The preview is rendered through the canvas so
-    // the skeleton layer and the video never appear as a black hidden element.
-    // In-page recording uses the raw camera stream; guide is a separate SVG layer.
-    const captureDialog = document.getElementById('captureDialog');
-    const capturePreview = document.getElementById('capturePreview');
-    const captureStatus = document.getElementById('captureStatus');
-    const captureRecord = document.getElementById('captureRecord');
-    const captureStop = document.getElementById('captureStop');
-    const captureClose = document.getElementById('captureClose');
-    let captureStream = null, captureRecorder = null, captureChunks = [];
-    let captureClock = null, captureStarted = 0, captureSession = 0, recordedUrl = null;
-    let captureOpening = false;
-    const originalLink = document.createElement('a');
-    originalLink.id='downloadOriginal'; originalLink.hidden=true; originalLink.textContent='下載原始錄影';
-    document.getElementById('playerColumn').append(originalLink);
-    function releaseCaptureStream() {
-      clearInterval(captureClock); captureClock=null;
-      capturePreview.pause();
-      if(captureStream) captureStream.getTracks().forEach(track=>track.stop());
-      captureStream=null; capturePreview.srcObject=null;
-      capturePreview.removeAttribute('src'); capturePreview.load();
-    }
-    function closeCapture() {
-      if(captureRecorder && captureRecorder.state !== 'inactive') {
-        captureStatus.textContent='請先按「停止並分析」，保留這段錄影。'; return;
-      }
-      captureSession++; captureOpening=false; releaseCaptureStream();
-      captureDialog.close(); captureRecord.disabled=true;
-    }
-    function stopCaptureRecording() {
-      if(!captureRecorder || captureRecorder.state==='inactive') return;
-      captureStop.disabled=true; clearInterval(captureClock); captureClock=null;
-      captureStatus.textContent='正在整理錄影…'; captureRecorder.stop();
-    }
-    function openCapture() {
-      if(isExporting){statusText.textContent='請等匯出完成後再拍攝';return;}
-      if(captureDialog.open)return;
-      pauseVideo();captureDialog.showModal();
-      captureStatus.textContent='按「啟動相機」，允許權限後即可看到真人預覽與對位框。';
-      captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
-      document.getElementById('captureEnable').disabled=false;
-      document.getElementById('captureNative').disabled=false;
-    }
-    document.getElementById('captureEnable').addEventListener('click',enableCaptureCamera);
-    async function enableCaptureCamera() {
-      if(isExporting) {statusText.textContent='請等匯出完成後再拍攝';return;}
-      if(!captureDialog.open || captureOpening || captureStream) return;
-      captureOpening=true;
-      document.getElementById('captureEnable').disabled=true;
-      const session=++captureSession;
-      captureStatus.textContent='請允許使用相機；畫面會顯示在下方。';
-      captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
-      document.getElementById('captureNative').disabled=false;
-      if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined') {
-        captureOpening=false;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='此瀏覽器不支援網頁錄影，請按「改用系統來源」，或在 Safari／Chrome 開啟此頁。';return;
+    // Mobile capture simulation: use the rear camera when the browser allows it.
+    btnCamera.addEventListener('click', async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        statusText.textContent = '請用手機瀏覽器拍攝或選擇影片';
+        videoInput.click();
+        return;
       }
       try {
-        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
-        if(session!==captureSession || !captureDialog.open){stream.getTracks().forEach(t=>t.stop());return;}
-        captureStream=stream; capturePreview.srcObject=stream;
-        capturePreview.muted=true;
-        capturePreview.setAttribute('playsinline','');
-        capturePreview.setAttribute('webkit-playsinline','');
-        await capturePreview.play();
-        if(session!==captureSession)return;
-        const settings=stream.getVideoTracks()[0].getSettings?.() || {};
-        const w=capturePreview.videoWidth||settings.width||1280,h=capturePreview.videoHeight||settings.height||720;
-        const viewport=document.getElementById('captureViewport');
-        viewport.style.aspectRatio=w+' / '+h;
-        // Constrain both dimensions so the overlay and camera pixels always coincide.
-        viewport.style.width='min(100%, '+(58*w/h)+'dvh)';
-        captureRecord.disabled=false;captureOpening=false;
-        captureStatus.textContent='將球員全身對入框內，動作與揮棒範圍都要留在畫面中。';
-        stream.getVideoTracks()[0].addEventListener('ended',()=>{
-          if(captureRecorder && captureRecorder.state!=='inactive')stopCaptureRecording();
-          else {releaseCaptureStream();captureRecord.disabled=true;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='相機已中斷，請按「啟動相機」重試。';}
-        });
-      } catch(error) {
-        if(session!==captureSession)return;
-        captureOpening=false;releaseCaptureStream();
-        document.getElementById('captureEnable').disabled=false;
-        const reason=error.name==='NotAllowedError'?'相機權限未允許，或目前 App 不開放相機。':error.name==='NotFoundError'?'找不到可用相機。':error.name==='NotReadableError'?'相機可能正被其他 App 使用。':'相機預覽無法啟動。';
-        captureStatus.textContent=reason+' 可重試，或按「改用手機相機」；對位錄影請在 Safari／Chrome 開啟。';
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        video.srcObject = stream;
+        video.classList.remove('hidden');
+        dropPrompt.style.display = 'none';
+        statusText.textContent = '手機鏡頭預覽中';
+        await video.play();
+        isPlaying = true;
+        playIcon.textContent = '⏸ 暫停';
+      } catch (error) {
+        statusText.textContent = '未開啟鏡頭，改用影片匯入';
+        videoInput.click();
       }
-    }
-    captureRecord.addEventListener('click',()=>{
-      if(!captureStream || captureRecorder?.state==='recording')return;
-      try {
-        const types=['video/mp4','video/webm;codecs=vp8','video/webm'];
-        const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
-        captureRecorder=mime?new MediaRecorder(captureStream,{mimeType:mime}):new MediaRecorder(captureStream);
-        captureChunks=[];
-        captureRecorder.ondataavailable=e=>{if(e.data?.size)captureChunks.push(e.data);};
-        captureRecorder.onerror=()=>{
-          captureStatus.textContent='錄影發生錯誤，請停止後重試或改用手機相機。';
-          stopCaptureRecording();
-        };
-        captureRecorder.onstop=()=>{
-          const type=captureRecorder.mimeType||mime||'video/webm';
-          const blob=new Blob(captureChunks,{type});
-          releaseCaptureStream();captureClose.disabled=false;
-          captureRecord.disabled=true;captureStop.disabled=true;
-          document.getElementById('captureNative').disabled=false;
-          if(!blob.size){captureStatus.textContent='沒有錄到畫面，請關閉後重新拍攝。';return;}
-          if(recordedUrl)URL.revokeObjectURL(recordedUrl);
-          recordedUrl=URL.createObjectURL(blob);originalLink.href=recordedUrl;
-          originalLink.download='baseball_recording_'+Date.now()+(type.includes('mp4')?'.mp4':'.webm');
-          originalLink.hidden=false;captureDialog.close();
-          loadVideoSource(new File([blob],originalLink.download,{type}));
-          statusText.textContent='錄影完成，可慢放與逐格分析；也可下載原始錄影';
-        };
-        captureRecorder.start(250);captureStarted=performance.now();
-        captureRecord.disabled=true;captureStop.disabled=false;captureClose.disabled=true;
-        document.getElementById('captureNative').disabled=true;
-        captureStatus.textContent='錄影中 00:00 · 最長 60 秒';
-        captureClock=setInterval(()=>{
-          const seconds=Math.floor((performance.now()-captureStarted)/1000);
-          captureStatus.textContent='錄影中 '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')+' · 最長 60 秒';
-          if(seconds>=60)stopCaptureRecording();
-        },250);
-      }catch(error){captureStatus.textContent='此裝置不支援此錄影格式，請改用手機相機。';}
-    });
-    captureStop.addEventListener('click',stopCaptureRecording);
-    captureClose.addEventListener('click',closeCapture);
-    captureDialog.addEventListener('cancel',event=>{event.preventDefault();closeCapture();});
-    function prepareNativeCapture() {
-      if(isExporting || (captureRecorder && captureRecorder.state!=='inactive')) {
-        statusText.textContent='請先停止錄影或等匯出完成'; return false;
-      }
-      const hadWebCamera = Boolean(captureStream || captureOpening || video.srcObject);
-      captureSession++;captureOpening=false;
-      releaseCaptureStream();
-      if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
-      if(video.srcObject){video.srcObject.getTracks().forEach(track=>track.stop());video.srcObject=null;}
-      pauseVideo();
-      if(captureDialog.open)captureDialog.close();
-      captureRecord.disabled=true;captureStop.disabled=true;
-      document.getElementById('captureEnable').disabled=false;
-      return hadWebCamera;
-    }
-    document.getElementById('captureNative').addEventListener('click',()=>{
-      if(captureRecorder && captureRecorder.state!=='inactive')return;
-      prepareNativeCapture();
-      // Separate user gestures give iOS time to hand the camera back to its picker.
-      statusText.textContent='網頁相機已關閉，請按上方「選擇影片」，再選錄影或圖庫。';
-      document.getElementById('sourceSelect').focus();
-    });
-    document.getElementById('changeVideo').addEventListener('click',()=>document.getElementById('sourceSelect').click());
-    document.getElementById('sourceSelect').addEventListener('click',()=>{
-      if(isExporting || (captureRecorder && captureRecorder.state!=='inactive')){
-        statusText.textContent='請先停止錄影或等匯出完成';return;
-      }
-      const hadWebCamera=prepareNativeCapture();
-      if(hadWebCamera){statusText.textContent='已釋放相機，請再按「選擇影片」挑選來源。';return;}
-      libraryInput.value='';libraryInput.click();
-    });
-    btnCamera.textContent='對位錄影';btnCamera.addEventListener('click',openCapture);
-    document.getElementById('captureGuideToggle').addEventListener('change',event=>{
-      document.getElementById('captureGuide').style.display=event.target.checked?'':'none';
-    });
-    document.getElementById('captureMode').addEventListener('change',event=>{
-      document.getElementById('capturePerson').innerHTML=event.target.value==='hit'
-        ? '<ellipse cx="48" cy="27" rx="4" ry="6"/><path d="M48 34L50 57M48 39L58 40L62 28M48 39L54 46L62 28M50 57L37 71L27 86M50 57L63 72L74 86M62 28L76 12"/>'
-        : '<ellipse cx="48" cy="25" rx="4" ry="6"/><path d="M48 32L49 56M48 37L36 43L29 31M48 37L60 31L67 19M49 56L34 68L25 86M49 56L62 73L73 86"/>';
-    });
-    document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState!=='hidden')return;
-      captureSession++;captureOpening=false;
-      if(captureRecorder && captureRecorder.state==='recording'){
-        stopCaptureRecording();
-      } else {
-        releaseCaptureStream();
-        captureRecord.disabled=true;document.getElementById('captureEnable').disabled=false;
-        if(captureDialog.open)captureStatus.textContent='相機已暫停，返回後請按「啟動相機」。';
-      }
-    });
-    window.addEventListener('pagehide',()=>{
-      captureSession++;
-      if(captureRecorder?.state==='recording'){captureRecorder.onstop=null;captureRecorder.stop();}
-      releaseCaptureStream();
     });
 
-    cameraInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
-    });
-    libraryInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
-    });
     // Event Listeners
     videoInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) {
@@ -1121,7 +649,9 @@
       }
     });
 
-
+    dropPrompt.addEventListener('click', () => {
+      videoInput.click();
+    });
 
     // Drag and drop video file
     window.addEventListener('dragover', (e) => e.preventDefault());
@@ -1136,233 +666,126 @@
       if (isPlaying) pauseVideo();
       else playVideo();
     });
-    btnLoop.addEventListener('click', () => {
-      loopEnabled = !loopEnabled;
-      btnLoop.setAttribute('aria-pressed', String(loopEnabled));
-      btnLoop.classList.toggle('bg-blue-600', loopEnabled);
-      btnLoop.classList.toggle('text-white', loopEnabled);
-      btnLoop.classList.toggle('border-blue-600', loopEnabled);
-      btnLoop.classList.toggle('bg-slate-800', !loopEnabled);
-      btnLoop.classList.toggle('text-slate-200', !loopEnabled);
-      btnLoop.classList.toggle('border-slate-700', !loopEnabled);
-      btnLoop.title = loopEnabled ? '關閉循環播放' : '開啟循環播放';
-      statusText.textContent = video.srcObject ? '即時鏡頭無須循環；匯入影片後生效' :
-        (loopEnabled ? '循環播放已開啟' : '循環播放已關閉');
-    });
-    // Export installs video.onended; do not restart the video while recording.
-    video.addEventListener('ended', () => {
-      if (isExporting || video.srcObject) return;
-      if (loopEnabled && Number.isFinite(video.duration)) {
-        video.currentTime = 0;
-        playVideo();
-      } else {
-        pauseVideo();
-      }
-    });
 
     btnPrev1.addEventListener('click', () => stepFrame(-1));
     btnNext1.addEventListener('click', () => stepFrame(1));
     btnPrev5.addEventListener('click', () => stepFrame(-5));
     btnNext5.addEventListener('click', () => stepFrame(5));
 
-    // Input fires continuously while finger or mouse drags the progress bar.
-    scrubber.addEventListener('pointerdown', () => { isScrubbing = true; });
-    scrubber.addEventListener('pointerup', () => { isScrubbing = false; });
-    scrubber.addEventListener('pointercancel', () => { isScrubbing = false; });
-    scrubber.addEventListener('change', () => { isScrubbing = false; });
+    // Scrubber interaction
     scrubber.addEventListener('input', () => {
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        seekToTime(Number(scrubber.value) / fps);
+      pauseVideo();
+      if (video.duration) {
+        video.currentTime = (scrubber.value / 100) * video.duration;
+        processCurrentVideoFrame();
       }
     });
 
-    // Persistent playback rate across iOS Safari play/load transitions.
-    let currentSpeed = 1.0;
-    let correctingPlaybackRate = false;
-
-    function restorePlaybackSpeed() {
-      if (video.srcObject || correctingPlaybackRate) return;
-      if (Math.abs(video.playbackRate - currentSpeed) < 0.01) return;
-      correctingPlaybackRate = true;
-      try {
-        video.playbackRate = currentSpeed;
-      } catch (error) {
-        console.warn('Playback rate restore failed:', error);
-      } finally {
-        correctingPlaybackRate = false;
-      }
-    }
-
-    function applyPlaybackSpeed(rawSpeed) {
-      const requested = Number(rawSpeed);
-      if (!Number.isFinite(requested) || requested <= 0) return;
-      if (video.srcObject) {
-        statusText.textContent = '即時鏡頭不支援變速，請匯入影片';
-        return;
-      }
-      currentSpeed = requested;
-      speedButtons.forEach(button => {
-        const selected = Math.abs(Number(button.dataset.speed) - currentSpeed) < 0.01;
-        button.classList.toggle('bg-blue-600', selected);
-        button.classList.toggle('text-white', selected);
-        button.classList.toggle('font-medium', selected);
-        button.classList.toggle('text-slate-300', !selected);
-        button.setAttribute('aria-pressed', String(selected));
-      });
-      restorePlaybackSpeed();
-      if (Math.abs(video.playbackRate - currentSpeed) > 0.01) {
-        statusText.textContent = '瀏覽器可能不支援此播放速度';
-      } else {
-        statusText.textContent = '播放速度已切換至 ' + currentSpeed + 'x';
-      }
-    }
-
-    speedButtons.forEach(button => {
-      button.addEventListener('click', event => {
-        event.preventDefault();
-        applyPlaybackSpeed(button.dataset.speed);
+    // Speed buttons
+    speedButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        speedButtons.forEach(b => {
+          b.classList.remove('bg-blue-600', 'text-white', 'font-medium');
+          b.classList.add('text-slate-300');
+        });
+        btn.classList.add('bg-blue-600', 'text-white', 'font-medium');
+        btn.classList.remove('text-slate-300');
+        video.playbackRate = parseFloat(btn.dataset.speed);
       });
     });
 
-    ['play', 'playing', 'loadedmetadata'].forEach(eventName => {
-      video.addEventListener(eventName, restorePlaybackSpeed);
-    });
-    video.addEventListener('ratechange', restorePlaybackSpeed);
-
-    document.getElementById('playbackPriority').addEventListener('change',()=>{
-      currentPoseLandmarks=null;renderCurrentFrame();processCurrentVideoFrame();
-    });
-    document.getElementById('toggleAI').addEventListener('change', event => {
-      currentPoseLandmarks = null;
-      if (event.target.checked) processCurrentVideoFrame();
-      else {
-        [rightElbowAngleText, leftElbowAngleText, leadKneeAngleText, trunkTiltAngleText].forEach(el => el.textContent = '--°');
-        [rightElbowBar, leftElbowBar, leadKneeBar, trunkTiltBar].forEach(el => el.style.width = '0%');
-      }
-      statusText.textContent = event.target.checked ? 'AI 辨識已開啟' : 'AI 已關閉 · 影片檢視模式';
-      renderCurrentFrame();
-    });
     // Toggle checkboxes
     toggleSkeleton.addEventListener('change', renderCurrentFrame);
-    angleDisplayOptions.forEach(input => input.addEventListener('change', () => {
-      selectedAngleIds = new Set(angleDisplayOptions.filter(option => option.checked).map(option => option.dataset.angle));
-      renderCurrentFrame();
-    }));
+    toggleAngleLabels.addEventListener('change', renderCurrentFrame);
 
     // Snapshot button
     btnSnapshot.addEventListener('click', () => {
-      if (!video.videoWidth) return;
-      originalResolutionRender=true;
-      try {
-        renderCurrentFrame();
-        const link=document.createElement('a');link.download=`baseball_pose_frame_${currentFrameText.textContent}.png`;
-        link.href=canvas.toDataURL('image/png');link.click();
-      } finally {originalResolutionRender=false;renderCurrentFrame();}
+      if (!canvas.width) return;
+      const link = document.createElement('a');
+      link.download = `baseball_pose_frame_${currentFrameText.textContent}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     });
 
-    // Export an optional selected time segment; canvas includes crop and skeleton.
+    // Full Annotated Video Export
     let isExporting = false;
     btnExportVideo.addEventListener('click', async () => {
-      if (isExporting) return;
-      if (!Number.isFinite(video.duration) || video.duration <= 0 || video.srcObject) {
-        statusText.textContent = '請先載入可播放的影片';
+      if (!video.duration || isExporting) {
+        if (!video.duration) statusText.textContent = "請先載入影片！";
         return;
       }
-      if (!canvas.captureStream || typeof MediaRecorder === 'undefined') {
-        statusText.textContent = '目前瀏覽器不支援影片錄製，請改用支援 MediaRecorder 的瀏覽器';
-        return;
-      }
-      const start = 0;
-      const end = video.duration;
-      if (end - start < 0.1) {
-        statusText.textContent = '請選擇長度至少 0.1 秒的片段';
-        return;
-      }
+
       isExporting = true;
       btnExportVideo.disabled = true;
-      const previousLabel = btnExportVideo.textContent;
-      btnExportVideo.textContent = '錄製片段中…';
-      const chunks = [];
-      let recorder = null;
-      let stream = null;
-      let finished = false;
-      let previousSpeed = currentSpeed;
-      const cleanup = () => {
-        video.removeEventListener('timeupdate', checkClipEnd);
-        video.removeEventListener('ended', finish);
-        stream?.getTracks().forEach(track => track.stop());
-        btnExportVideo.disabled = false;
-        btnExportVideo.textContent = previousLabel;
-        isExporting = false;
-        currentSpeed = previousSpeed;
-        restorePlaybackSpeed();
-      };
-      function finish() {
-        if (finished) return;
-        finished = true;
-        pauseVideo();
-        if (recorder && recorder.state !== 'inactive') recorder.stop();
+      btnExportVideo.classList.add('opacity-75', 'cursor-not-allowed');
+      const originalText = btnExportVideo.textContent;
+      btnExportVideo.textContent = "⏳ 錄製合成中...";
+      statusText.textContent = "正在自動播放並合成骨架影片...";
+
+      pauseVideo();
+      video.currentTime = 0;
+      await new Promise(r => setTimeout(r, 300));
+
+      const stream = canvas.captureStream(30);
+      let mimeType = 'video/webm';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') || MediaRecorder.isTypeSupported('video/mp4')) {
+          mimeType = 'video/mp4';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+          mimeType = 'video/webm;codecs=vp9';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        }
       }
-      function checkClipEnd() {
-        if (video.currentTime >= end - 0.02) finish();
-      }
+
+      const recordedChunks = [];
+      let mediaRecorder;
       try {
-        pauseVideo();
-        video.currentTime = start;
-        if (video.seeking) await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => { video.removeEventListener('seeked', resolved); reject(new Error('seek timeout')); }, 8000);
-          const resolved = () => { clearTimeout(timeout); resolve(); };
-          video.addEventListener('seeked', resolved, { once:true });
-        });
-        renderCurrentFrame();
-        stream = canvas.captureStream(30);
-        const candidates = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
-        const mime = candidates.find(type => MediaRecorder.isTypeSupported(type));
-        recorder = mime ? new MediaRecorder(stream, {mimeType:mime}) : new MediaRecorder(stream);
-        recorder.ondataavailable = event => {
-          if (event.data && event.data.size > 0) chunks.push(event.data);
-        };
-        recorder.onerror = event => {
-          statusText.textContent = '錄製失敗：' + (event.error?.message || '不支援的影片編碼');
-          finished = true;
-          pauseVideo();
-          if (recorder.state !== 'inactive') recorder.stop();
-        };
-        recorder.onstop = () => {
-          if (chunks.length) {
-            const actualMime = recorder.mimeType || mime || 'video/webm';
-            const ext = actualMime.includes('mp4') ? 'mp4' : 'webm';
-            const blob = new Blob(chunks, {type:actualMime});
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = 'baseball_pose_clip_' + Date.now() + '.' + ext;
-            anchor.click();
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
-            statusText.textContent = '片段已匯出（含目前取景與骨架）';
-          } else {
-            statusText.textContent = '沒有錄到片段，請重新嘗試';
-          }
-          cleanup();
-        };
-        video.addEventListener('timeupdate', checkClipEnd);
-        video.addEventListener('ended', finish, {once:true});
-        currentSpeed = 1;
-        restorePlaybackSpeed();
-        recorder.start(250);
-        playVideo();
-      } catch (error) {
-        statusText.textContent = '片段匯出失敗：' + error.message;
-        if (recorder && recorder.state !== 'inactive') {
-          recorder.onstop = cleanup;
-          recorder.stop();
-        } else cleanup();
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
       }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `baseball_pose_analyzed_${Date.now()}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        isExporting = false;
+        btnExportVideo.disabled = false;
+        btnExportVideo.classList.remove('opacity-75', 'cursor-not-allowed');
+        btnExportVideo.textContent = originalText;
+        statusText.textContent = "骨架影片已成功匯出下載！";
+      };
+
+      mediaRecorder.start();
+      playVideo();
+
+      video.onended = () => {
+        pauseVideo();
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        video.onended = null;
+      };
     });
 
     // Keyboard Shortcuts (Space, ArrowLeft, ArrowRight)
     window.addEventListener('keydown', (e) => {
-      if (captureDialog.open || ['INPUT','SELECT','BUTTON','TEXTAREA','SUMMARY'].includes(e.target.tagName) || e.target.isContentEditable) return;
+      if (e.target.tagName === 'INPUT') return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (isPlaying) pauseVideo();
@@ -1379,7 +802,6 @@
     // Load Demo Video (Simulated Baseball Swing Animation Canvas)
     btnDemo.addEventListener('click', () => {
       dropPrompt.style.display = 'none';
-      revealPlaybackControls();
       statusText.textContent = "載入示範測試球員...";
       
       // Create an animated canvas video stream for testing without files
@@ -1455,10 +877,20 @@
       startPlaybackLoop();
     });
 
-
+    // A small, thumb-friendly stage navigator makes the timeline feel like a discovery tool.
+    const stageButtons = [...document.querySelectorAll('.stage-track button')];
+    const insightCopy = [
+      '先找到身體開始移動的那一格。',
+      '看看前腳落地時，身體有沒有保持穩定。',
+      '這通常是最值得留下來分享的關鍵畫面。',
+      '觀察動作完成後，身體如何停住。'
+    ];
+    stageButtons.forEach((button, index) => button.addEventListener('click', () => {
+      stageButtons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      const insight = document.querySelector('.insight-card p');
+      if (insight) insight.textContent = insightCopy[index];
+    }));
   </script>
 </body>
 </html>
-
-
-
