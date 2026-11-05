@@ -34,7 +34,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.0</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.2</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -72,8 +72,8 @@
       </svg>
     </div>
     <p id="captureStatus" role="status" aria-live="polite">正在開啟相機…</p>
-    <div class="capture-actions"><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用手機相機</button></div>
-    <p class="capture-tip">每段最長 60 秒，錄影不含聲音、對位框及骨架。停止後在此裝置分析。</p>
+    <div class="capture-actions"><button type="button" id="captureEnable">啟動相機</button><button type="button" id="captureRecord" disabled>開始錄影</button><button type="button" id="captureStop" disabled>停止並分析</button><button type="button" id="captureNative">改用手機相機</button></div>
+    <p class="capture-tip">先按「啟動相機」並允許權限；若在 LINE 等 App 內開啟，對位錄影請改用 Safari／Chrome。「×」只會關閉視窗。每段最長 60 秒，錄影不含聲音、框線及骨架。</p>
   </dialog>
   <!-- Main Content Grid -->
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -83,7 +83,7 @@
       <!-- Compact mobile source controls; accessible after the empty state disappears -->
       <div class="mobile-source-actions" aria-label="影片來源">
         <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
-        <button type="button" data-camera-open class="mobile-source-secondary">拍攝</button>
+        <button type="button" data-native-camera class="mobile-source-secondary">拍攝</button><button type="button" data-camera-open class="mobile-source-secondary">對位錄影</button>
         <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
       </div>
       <!-- Video Screen Container -->
@@ -98,7 +98,7 @@
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
           <div class="flex flex-wrap justify-center gap-2">
-            <button type="button" data-camera-open class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</button>
+            <button type="button" data-native-camera class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">手機相機拍攝</button><button type="button" data-camera-open class="bg-slate-800 text-slate-100 text-sm px-4 py-3 rounded-lg">對位錄影</button>
             <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
           </div>
         </div>
@@ -234,8 +234,9 @@
         <!-- Display Toggles -->
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
+          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>播放優先（停格才辨識）</span><input type="checkbox" id="playbackPriority" checked></label>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>AI 動作辨識</span><input type="checkbox" id="toggleAI" checked></label>
-          <p class="text-[10px] text-slate-400">播放不順時可關閉 AI，繼續慢放與逐格。AI 更新最高每秒 10 次。</p>
+          <p class="text-[10px] text-slate-400">預設播放時不執行 AI，暫停後分析。取消「播放優先」可即時辨識，但較耗效能。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
             <span>顯示身體骨架與中心參考線</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
@@ -401,6 +402,7 @@
     const trunkTiltAngleText = document.getElementById('trunkTiltAngle');
     const trunkTiltBar = document.getElementById('trunkTiltBar');
 
+    let originalResolutionRender = false;
     let isPlaying = false;
     let loopEnabled = false;
     let fps = 30; // default estimated fps
@@ -505,6 +507,7 @@
 
     // MediaPipe Pose Results Handler
     function onPoseResults(results) {
+      if (isPlaying && document.getElementById('playbackPriority').checked) { currentPoseLandmarks = null; return; }
       currentPoseLandmarks = document.getElementById('toggleAI').checked ? results.poseLandmarks || null : null;
       if (!isPlaying) renderCurrentFrame();
     }
@@ -607,9 +610,11 @@
     function renderCurrentFrame() {
       if (!video.videoWidth || !video.videoHeight) return;
 
-      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      const previewScale = originalResolutionRender || isExporting ? 1 : Math.min(1, 960 / Math.max(video.videoWidth, video.videoHeight));
+      const renderWidth = Math.max(1, Math.round(video.videoWidth * previewScale));
+      const renderHeight = Math.max(1, Math.round(video.videoHeight * previewScale));
+      if (canvas.width !== renderWidth || canvas.height !== renderHeight) {
+        canvas.width = renderWidth; canvas.height = renderHeight;
       }
 
       // Transform footage AND pose overlays together. Canvas bounds are the crop mask.
@@ -728,6 +733,7 @@
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame() {
       if (!pose || isProcessingPose || !video.videoWidth || video.readyState < 2 || !document.getElementById('toggleAI').checked) return;
+      if (isPlaying && document.getElementById('playbackPriority').checked) return;
       const now = performance.now();
       if (isPlaying && now - lastPoseStartedAt < 100) return;
       lastPoseStartedAt = now;
@@ -793,8 +799,7 @@
       video.src = src;
       video.load();
       video.onloadedmetadata = () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        renderCurrentFrame();
         durationDisplay.textContent = formatTime(video.duration);
         const totalFrames = Math.max(0, Math.round(video.duration * fps));
         totalFramesText.textContent = totalFrames;
@@ -863,6 +868,7 @@
         restorePlaybackSpeed();
       }
       isPlaying = true;
+      if(document.getElementById('playbackPriority').checked) currentPoseLandmarks=null;
       const playPromise = video.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(error => {
@@ -930,24 +936,39 @@
       captureStop.disabled=true; clearInterval(captureClock); captureClock=null;
       captureStatus.textContent='正在整理錄影…'; captureRecorder.stop();
     }
-    async function openCapture() {
+    function openCapture() {
+      if(isExporting){statusText.textContent='請等匯出完成後再拍攝';return;}
+      if(captureDialog.open)return;
+      pauseVideo();captureDialog.showModal();
+      captureStatus.textContent='按「啟動相機」，允許權限後即可看到真人預覽與對位框。';
+      captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
+      document.getElementById('captureEnable').disabled=false;
+      document.getElementById('captureNative').disabled=false;
+    }
+    document.getElementById('captureEnable').addEventListener('click',enableCaptureCamera);
+    async function enableCaptureCamera() {
       if(isExporting) {statusText.textContent='請等匯出完成後再拍攝';return;}
-      if(captureDialog.open || captureOpening) return;
-      pauseVideo(); captureDialog.showModal(); captureOpening=true;
+      if(!captureDialog.open || captureOpening || captureStream) return;
+      captureOpening=true;
+      document.getElementById('captureEnable').disabled=true;
       const session=++captureSession;
       captureStatus.textContent='請允許使用相機；畫面會顯示在下方。';
       captureRecord.disabled=true;captureStop.disabled=true;captureClose.disabled=false;
       document.getElementById('captureNative').disabled=false;
       if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined') {
-        captureOpening=false;captureStatus.textContent='此瀏覽器無法在網頁錄影，請改用手機相機，再匯入影片。';return;
+        captureOpening=false;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='此瀏覽器不支援網頁錄影，請按「改用手機相機」，或在 Safari／Chrome 開啟此頁。';return;
       }
       try {
         const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
         if(session!==captureSession || !captureDialog.open){stream.getTracks().forEach(t=>t.stop());return;}
         captureStream=stream; capturePreview.srcObject=stream;
+        capturePreview.muted=true;
+        capturePreview.setAttribute('playsinline','');
+        capturePreview.setAttribute('webkit-playsinline','');
         await capturePreview.play();
         if(session!==captureSession)return;
-        const w=capturePreview.videoWidth,h=capturePreview.videoHeight;
+        const settings=stream.getVideoTracks()[0].getSettings?.() || {};
+        const w=capturePreview.videoWidth||settings.width||1280,h=capturePreview.videoHeight||settings.height||720;
         const viewport=document.getElementById('captureViewport');
         viewport.style.aspectRatio=w+' / '+h;
         // Constrain both dimensions so the overlay and camera pixels always coincide.
@@ -956,12 +977,14 @@
         captureStatus.textContent='將球員全身對入框內，動作與揮棒範圍都要留在畫面中。';
         stream.getVideoTracks()[0].addEventListener('ended',()=>{
           if(captureRecorder && captureRecorder.state!=='inactive')stopCaptureRecording();
-          else {captureRecord.disabled=true;captureStatus.textContent='相機已中斷，請關閉後重新開啟。';}
+          else {releaseCaptureStream();captureRecord.disabled=true;document.getElementById('captureEnable').disabled=false;captureStatus.textContent='相機已中斷，請按「啟動相機」重試。';}
         });
       } catch(error) {
         if(session!==captureSession)return;
         captureOpening=false;releaseCaptureStream();
-        captureStatus.textContent='無法開啟相機，請檢查權限，或改用手機相機。';
+        document.getElementById('captureEnable').disabled=false;
+        const reason=error.name==='NotAllowedError'?'相機權限未允許，或目前 App 不開放相機。':error.name==='NotFoundError'?'找不到可用相機。':error.name==='NotReadableError'?'相機可能正被其他 App 使用。':'相機預覽無法啟動。';
+        captureStatus.textContent=reason+' 可重試，或按「改用手機相機」；對位錄影請在 Safari／Chrome 開啟。';
       }
     }
     captureRecord.addEventListener('click',()=>{
@@ -1005,6 +1028,10 @@
     captureClose.addEventListener('click',closeCapture);
     captureDialog.addEventListener('cancel',event=>{event.preventDefault();closeCapture();});
     document.getElementById('captureNative').addEventListener('click',()=>{closeCapture();cameraInput.click();});
+    document.querySelectorAll('[data-native-camera]').forEach(button=>button.addEventListener('click',()=>{
+      if(isExporting){statusText.textContent='請等匯出完成後再拍攝';return;}
+      pauseVideo();cameraInput.value='';cameraInput.click();
+    }));
     document.querySelectorAll('[data-camera-open]').forEach(button=>button.addEventListener('click',openCapture));
     btnCamera.textContent='對位錄影';btnCamera.addEventListener('click',openCapture);
     document.getElementById('captureGuideToggle').addEventListener('change',event=>{
@@ -1142,6 +1169,9 @@
     });
     video.addEventListener('ratechange', restorePlaybackSpeed);
 
+    document.getElementById('playbackPriority').addEventListener('change',()=>{
+      currentPoseLandmarks=null;renderCurrentFrame();processCurrentVideoFrame();
+    });
     document.getElementById('toggleAI').addEventListener('change', event => {
       currentPoseLandmarks = null;
       if (event.target.checked) processCurrentVideoFrame();
@@ -1158,11 +1188,13 @@
 
     // Snapshot button
     btnSnapshot.addEventListener('click', () => {
-      if (!canvas.width) return;
-      const link = document.createElement('a');
-      link.download = `baseball_pose_frame_${currentFrameText.textContent}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      if (!video.videoWidth) return;
+      originalResolutionRender=true;
+      try {
+        renderCurrentFrame();
+        const link=document.createElement('a');link.download=`baseball_pose_frame_${currentFrameText.textContent}.png`;
+        link.href=canvas.toDataURL('image/png');link.click();
+      } finally {originalResolutionRender=false;renderCurrentFrame();}
     });
 
     // Export an optional selected time segment; canvas includes crop and skeleton.
@@ -1364,5 +1396,6 @@
   </script>
 </body>
 </html>
+
 
 
