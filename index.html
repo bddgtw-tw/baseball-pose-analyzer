@@ -3,225 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>棒球 AI 動作實驗室｜看看你的動作，AI 會抓到什麼</title>
+  <title>棒球動作檢視器｜Baseball Motion</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- MediaPipe Pose CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
-    :root {
-      --ink:#f4f7ed; --muted:#9ca99f; --ground:#07100f; --panel:#0d1a18; --panel-2:#12231f;
-      --line:#294039; --line-strong:#3b5b4e; --lime:#d8ff45; --lime-soft:#b9e83b;
-      --green:#62ddb0; --orange:#ffad56; --danger:#ff7777; --focus:#b8f4ff;
-      --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px;
-      --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
-    }
-    body { font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif; background:var(--ground); color:var(--ink); }
-    header { background:rgba(7,16,15,.92)!important; border-color:var(--line)!important; }
-    header .max-w-7xl { max-width:1400px; }
-    header h1 { font-size:clamp(1.15rem,2vw,1.8rem)!important; letter-spacing:-.04em!important; }
-    header p { color:var(--muted)!important; font-size:.85rem!important; }
-    header .w-10 { background:var(--lime)!important; color:#0a1512!important; border-radius:12px!important; box-shadow:none!important; font-size:0!important; }
-    header .w-10::after { content:'↗'; font-size:1.4rem; font-weight:900; }
-    header span.bg-blue-500\/20 { display:none; }
-    main { max-width:1400px!important; gap:20px!important; padding:28px 24px!important; }
-    .bg-black { background:#020504!important; border-color:var(--line)!important; border-radius:20px!important; box-shadow:0 24px 70px rgba(0,0,0,.32)!important; }
-    .bg-slate-900, .bg-slate-900\/60 { background:var(--panel)!important; border-color:var(--line)!important; box-shadow:none!important; }
-    .bg-slate-950\/70 { background:var(--panel-2)!important; border-color:var(--line)!important; }
-    .border-slate-800, .border-slate-800\/80, .border-slate-700 { border-color:var(--line)!important; }
-    .text-blue-400, .text-indigo-400 { color:var(--lime)!important; }
-    .bg-blue-600, .bg-indigo-600 { background:var(--lime)!important; color:#0a1512!important; }
-    .hover\\:bg-blue-500:hover, .hover\\:bg-indigo-500:hover { background:#e9ff8a!important; }
-    .bg-emerald-600 { background:var(--green)!important; color:#07100f!important; }
-    .bg-amber-500 { background:var(--orange)!important; }
-    .rounded-xl, .rounded-2xl, .rounded-lg { border-radius:var(--radius-md)!important; }
-    button, label[for=videoInput], label[for=libraryInput], label[for=cameraInput] {
-      min-height:44px; transition:transform .18s ease, background .18s ease, border-color .18s ease;
-    }
-    button:focus-visible, label:focus-visible, input:focus-visible {
-      outline:3px solid var(--focus); outline-offset:2px;
-    }
-    button:hover, label[for=videoInput]:hover, label[for=libraryInput]:hover, label[for=cameraInput]:hover { transform:translateY(-1px); }
-    code, kbd { color:var(--lime)!important; background:#172a23!important; }
-    .slider::-webkit-slider-thumb { background:var(--lime); box-shadow:0 0 0 4px rgba(216,255,69,.15); }
-    .motion-intro { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:16px; }
-    .motion-intro h2 { font-size:clamp(1.6rem,3vw,2.7rem); line-height:1; letter-spacing:-.055em; max-width:720px; }
-    .motion-intro p { color:var(--muted); max-width:430px; line-height:1.55; }
-    .stage-track { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:0 0 14px; }
-    .stage-track button { border:0; border-radius:8px!important; background:#15251f; color:#7e9388; padding:9px 10px; text-align:left; min-height:0; font-size:.78rem; }
-    .stage-track button.active { background:var(--lime); color:#0a1512; font-weight:700; }
-    .insight-card { border-left:4px solid var(--lime); background:#15251f!important; padding:16px; }
-    .insight-card strong { color:var(--lime); }
-    .result-card { margin-top:16px; padding:18px; background:#d8ff45!important; color:#0a1512; border-radius:16px; }
-    .result-card h3 { font-size:1.25rem; font-weight:800; }
-    .result-card p { margin-top:5px; font-size:.9rem; }
-    .video-portrait { aspect-ratio:9 / 16!important; max-height:min(76vh,720px); }
-    .video-landscape { aspect-ratio:16 / 9!important; }
-    .floating-playback {
-      position:relative; z-index:2; width:100%;
-      display:flex; flex-direction:column; align-items:center;
-      gap:5px; padding:8px; border-radius:12px;
-      background:var(--panel-2); border:1px solid var(--line-strong);
-      pointer-events:auto;
-    }
-    .floating-playback.hidden { display:none; }
-    /* Avoid iPhone double-tap zoom on buttons, without disabling pinch-to-zoom globally. */
-    .floating-playback button, .floating-playback-row,
-    #btnLoop, .annotation-tool, #clearAnnotations, #btnSnapshot, #btnExportVideo {
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #scrubber { touch-action: pan-x; min-height: 28px; accent-color: #d8ff45; }
-    #frameZoom { appearance:none; height:8px; min-height:8px!important; border-radius:999px; background:#31473f; accent-color:var(--lime); }
-    #frameZoom::-webkit-slider-thumb { appearance:none; width:22px; height:22px; border-radius:50%; background:var(--lime); border:0; }
-    #frameZoom::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:var(--lime); border:0; }
-    #outputCanvas.frame-pan-active { touch-action:none; cursor:grab; }
-    #outputCanvas.frame-pan-active:active { cursor:grabbing; }
-    #frameZoom, #btnResetFraming { touch-action:manipulation; }
-    .floating-playback-row {
-      display:flex; align-items:center; justify-content:center; gap:5px;
-      max-width:100%; overflow-x:auto; scrollbar-width:none; white-space:nowrap;
-    }
-    .floating-playback-row::-webkit-scrollbar { display:none; }
-    .floating-playback button { flex:0 0 auto; min-width:52px; }
-    #videoStage { order:1; }
-    #controlPanel { order:2; }
-    #floatingPlayback { order:2; }
-    #videoFraming { order:3; }
-    #videoDeck { order:4; }
-    #imageTools { order:5; }
-    #controlPanel { display:flex; flex-direction:column; gap:12px; min-width:0; }
-    .control-section-title { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--ink); font-size:.95rem; font-weight:800; letter-spacing:-.02em; }
-    .control-section-title::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--lime); flex:0 0 auto; }
-    #exportTools { order:6; display:flex; flex-wrap:wrap; gap:8px; }
-    #exportTools .control-section-title { flex-basis:100%; }
-    #exportTools button { flex:1 1 140px; }
-    #diagnosticPanel { width:100%; max-width:980px; margin-inline:auto; }
-    #diagnosticPanel > .bg-slate-900 { background:var(--panel-2)!important; }
-    .mobile-source-actions { display:none; }
-    #controlPanel > div, #videoDeck, .bg-slate-900.border.border-slate-800.rounded-xl {
-      border-color:var(--line)!important;
-    }
-    #controlPanel button, #controlPanel label, #controlPanel input[type=range] { min-height:44px; }
-    #btnPlayPause, .mobile-source-primary { background:var(--lime)!important; color:#0a1512!important; }
-    #btnPlayPause:hover, .mobile-source-primary:hover { background:#e7ff77!important; }
-    #btnSnapshot { background:var(--green)!important; color:#07100f!important; }
-    #btnExportVideo { background:var(--lime)!important; color:#0a1512!important; }
-    .floating-playback-row button, #videoFraming button, #imageTools button, #exportTools button {
-      border:1px solid transparent;
-    }
-    .floating-playback-row button:not(#btnPlayPause):hover,
-    #videoFraming button:hover, #imageTools button:hover { border-color:var(--line-strong); }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { scroll-behavior:auto!important; transition-duration:0.01ms!important; animation-duration:0.01ms!important; }
-    }
-    @media (max-width:760px) {
-      .floating-playback { padding:5px; gap:3px; }
-      .floating-playback-row { justify-content:center; gap:4px; width:100%; }
-      .floating-playback-row button { padding:8px 9px; min-height:36px; font-size:11px; }
-      main { padding:12px 10px 88px!important; }
-      .motion-intro { display:block; padding-inline:14px!important; padding-top:18px!important; }
-      .motion-intro p { margin-top:8px; font-size:.84rem; }
-      header { position:sticky; top:0; }
-      header p { display:none; }
-      header .max-w-7xl { flex-wrap:nowrap; overflow-x:auto; }
-      header .max-w-7xl > div:first-child { min-width:max-content; }
-      header .max-w-7xl > div:last-child { margin-left:auto; min-width:max-content; }
-      header { padding:8px 12px!important; }
-      header > .max-w-7xl { gap:0!important; }
-      header h1 { font-size:clamp(.84rem,3.6vw,1rem)!important; gap:6px!important; white-space:nowrap; }
-      header .w-10 { width:28px!important; height:28px!important; min-width:28px!important; }
-      header .w-10::after { font-size:1rem!important; }
-      header .max-w-7xl > div:last-child { display:none!important; }
-      #appVersion { font-size:10px!important; padding:2px 5px!important; border-radius:6px!important; }
-      .mobile-source-actions { display:flex; align-items:center; gap:7px; }
-      .mobile-source-actions > * { min-height:40px; display:flex; align-items:center; justify-content:center; border-radius:9px; font-size:12px; font-weight:700; padding:8px 11px; white-space:nowrap; }
-      .mobile-source-primary { background:var(--lime); color:#08140e; flex:1; cursor:pointer; }
-      .mobile-source-secondary { background:#1b2d29; color:var(--ink); cursor:pointer; border:1px solid var(--line); }
-      .mobile-source-actions button { touch-action:manipulation; }
-      main { padding-top:8px!important; }
-
-      .stage-track { gap:5px; position:sticky; top:62px; z-index:18; padding:6px 0; background:var(--ground); }
-      .stage-track button { padding:8px 6px; font-size:.7rem; }
-      .video-portrait { width:min(100%,420px); margin-inline:auto; }
-      .flex.flex-wrap.items-center.justify-between { display:grid!important; grid-template-columns:1fr; }
-      .flex.flex-wrap.items-center.justify-between > div { justify-content:center; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { position:static; bottom:auto; z-index:auto; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:first-child { order:0; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) { border-top:0!important; padding-top:0!important; display:flex; justify-content:center; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) > div:nth-child(2) { display:none; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 > div:nth-child(2) > div:nth-child(3) { margin-left:auto; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 button { min-height:42px; }
-      .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
-      .annotation-tool, #clearAnnotations, #annotationStatus { display:none; }
-    }
-    /* Phone landscape: use the short viewport for the player instead of leaving
-       the portrait source inside a wide letterboxed stage. */
-    @media (max-width:900px) and (orientation:landscape) {
-      body { min-height:100svh; }
-      header { position:sticky; top:0; padding:4px 10px!important; }
-      header .max-w-7xl { gap:0!important; }
-      header p, header .max-w-7xl > div:last-child { display:none!important; }
-      header h1 { font-size:.86rem!important; white-space:nowrap; }
-      header .w-10 { width:26px!important; height:26px!important; min-width:26px!important; }
-      header .w-10::after { font-size:1rem!important; }
-      main { padding:4px 8px 8px!important; gap:6px!important; }
-      main > .lg\:col-span-4 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "playback" "framing" "deck" "tools" "export"; gap:6px!important; min-width:0; align-items:start; }
-      main > .lg\:col-span-4.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "framing framing" "deck deck" "tools tools" "export export"; }
-      #controlPanel { display:contents; }
-      .mobile-source-actions { display:flex; grid-area:source; gap:6px; }
-      .mobile-source-actions > * { min-height:30px; padding:4px 9px; font-size:11px; }
-      .stage-track { margin-bottom:8px; }
-      .bg-black { border-radius:12px!important; }
-      #videoStage { grid-area:stage; width:min(100%, calc((100svh - 90px) * 16 / 9)); height:clamp(160px, calc(100svh - 90px), 260px); aspect-ratio:16 / 9!important; margin-inline:auto; flex:0 0 auto; }
-      #videoStage.video-portrait { width:auto; height:clamp(160px, calc(100svh - 90px), 260px); aspect-ratio:9 / 16!important; }
-      .floating-playback { grid-area:playback; align-self:center; width:116px; padding:3px; gap:0; border-radius:10px; }
-      .floating-playback-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; width:100%; }
-      .floating-playback-row button { min-width:0; min-height:44px; padding:8px 4px; font-size:12px; }
-      #videoDeck { grid-area:deck; margin-top:0; padding:4px!important; }
-      #videoDeck > div { min-height:42px; }
-      #videoFraming { grid-area:framing; margin-top:0; }
-      #imageTools { grid-area:tools; margin-top:0; }
-      #exportTools { grid-area:export; margin-top:0; }
-      .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
-      .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
-    }
-    /* Wider landscape screens: make the video the left canvas and collect every
-       analysis control into one calm right-hand rail. */
-    @media (min-width:701px) and (orientation:landscape) {
-      main > .lg\:col-span-4.landscape-controls-ready { display:grid!important; grid-template-columns:minmax(0,1fr) 280px; grid-template-areas:"stage controls"; gap:16px!important; min-width:0; align-items:start; }
-      main > .lg\:col-span-4:not(.landscape-controls-ready) #controlPanel { display:none; }
-      #videoStage { grid-area:stage; width:min(100%, calc((100svh - 150px) * 16 / 9)); height:auto; min-height:0; max-height:none; aspect-ratio:16 / 9!important; margin:0; justify-self:start; }
-      #videoStage.video-portrait { width:min(100%, calc((100svh - 150px) * 9 / 16)); height:min(calc(100svh - 150px), 720px); min-height:360px; aspect-ratio:9 / 16!important; margin-inline:auto; }
-      #controlPanel { grid-area:controls; display:flex; align-self:stretch; gap:12px; }
-      #floatingPlayback, #videoFraming, #videoDeck, #imageTools, #exportTools { order:initial; width:100%; }
-      #floatingPlayback { order:1; }
-      #videoFraming { order:2; }
-      #videoDeck { order:3; }
-      #imageTools { order:4; }
-      #exportTools { order:5; }
-      #floatingPlayback { padding:8px; }
-      .floating-playback-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
-      .floating-playback-row button { min-height:48px; }
-      #videoFraming, #videoDeck, #imageTools { padding:12px; }
-      #videoFraming { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px; }
-      #videoFraming #frameZoom { grid-column:1 / -1; max-width:none; width:100%; }
-      #videoFraming > span:last-child { grid-column:1 / -1; }
-      #videoDeck > div { min-height:44px; }
-      #imageTools { display:flex; flex-wrap:wrap; }
-      #imageTools #annotationStatus { flex-basis:100%; }
-    }
-    .slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #3b82f6;
-      cursor: pointer;
-      box-shadow: 0 0 4px rgba(0,0,0,0.4);
-    }
-  </style>
+:root{color-scheme:dark;--ground:#111416;--panel:#1a1e21;--line:#30363a;--muted:#a8b1b6;--accent:#a8d6bf}
+*{box-sizing:border-box}body{margin:0;background:var(--ground)!important;color:#edf0f2;font-family:Inter,"Noto Sans TC",system-ui,sans-serif}button,input,label{font:inherit}button,label[for]{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.4;cursor:wait}button:focus-visible,input:focus-visible,summary:focus-visible,label:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button:hover{filter:brightness(1.16)}button,input{accent-color:var(--accent)}button{min-height:44px;border-radius:8px!important;box-shadow:none!important;transition:background .15s}header{background:#111416!important;border-color:var(--line)!important;padding:18px 28px!important;position:relative!important}header .max-w-7xl{max-width:1440px}header h1{font-size:16px!important;letter-spacing:-.025em}header p{font-size:11px!important;color:var(--muted)!important;margin-top:4px}header .w-10{background:#a8d6bf!important;color:#13251d!important;border-radius:10px!important;box-shadow:none!important}header h1>span:first-child{display:none}#appVersion{color:var(--muted)!important;border-color:var(--line)!important;background:transparent!important}header label,header button{font-size:12px!important;min-height:40px;padding:10px 14px!important}main{max-width:1440px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;gap:24px!important;padding:28px!important;align-items:start}#playerColumn{grid-column:auto!important;display:flex!important;flex-direction:column;gap:0!important;min-width:0}#videoStage{order:0;aspect-ratio:16/10!important;width:100%;height:auto;max-height:72vh;min-height:280px;background:#080a0b!important;border:1px solid var(--line)!important;border-radius:14px 14px 0 0!important;box-shadow:none!important}#videoStage.video-portrait{aspect-ratio:auto!important;height:65vh}#videoEl{display:none!important}#outputCanvas{width:100%;height:100%;object-fit:contain}#annotationCanvas{touch-action:none}#outputCanvas.frame-pan-active{touch-action:none;cursor:grab}#dropPrompt{border:0!important;margin:0!important;border-radius:14px!important;background:radial-gradient(ellipse at 50% 100%,#25342e 0,transparent 65%),#171c1e!important;gap:14px;cursor:default}#dropPrompt p{font-size:clamp(22px,3vw,34px)!important;letter-spacing:-.04em;margin:0!important}#dropPrompt .empty-note{font-size:13px!important;font-weight:400;color:var(--muted);max-width:310px;line-height:1.8}#dropPrompt label{min-height:46px;font-size:13px!important;padding:12px 20px!important}#statusBadge,#frameBadge{font-family:inherit;font-size:10px;background:#111416cc!important;border-color:#ffffff15!important;max-width:60%}#statusBadge .animate-pulse{animation:none;background:var(--accent)}#frameBadge{left:auto;right:12px;top:auto;bottom:12px;max-width:none;color:#c9d2d6!important}.mobile-source-actions{display:none}#controlPanel{display:flex;flex-direction:column;gap:0;background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;overflow:hidden}#videoDeck{order:0;border:0!important;border-radius:0!important;background:transparent!important;padding:18px 20px 4px!important;box-shadow:none!important}#videoDeck .control-section-title{display:none}#floatingPlayback{order:1;background:transparent;border:0;padding:12px 16px 18px}#floatingPlayback.hidden{display:none}.floating-playback-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.floating-playback-row button{min-width:46px;font-size:12px}#floatingPlayback>.control-section-title{display:none}#btnPlayPause{min-width:110px;justify-content:center;background:var(--accent)!important;color:#14231c!important}#speedRow{display:flex;justify-content:center;gap:4px;margin-top:12px;align-items:center}#speedRow>span{font-size:11px;color:var(--muted);margin-right:8px}.speed-btn{padding:6px 10px;min-height:32px!important;font-size:11px;background:transparent;color:var(--muted)}.speed-btn[aria-pressed=true]{background:#33463c;color:#d0eadd}#videoFraming,#imageTools,#exportTools{background:transparent!important;border:0!important;border-radius:0!important;padding:16px!important;box-shadow:none!important}#videoFraming{display:flex;flex-wrap:wrap;gap:8px}#videoFraming .control-section-title,#imageTools .control-section-title,#exportTools .control-section-title{display:none}#frameZoom{appearance:auto;min-width:80px;max-width:none;flex:1;height:24px}#videoFraming>span:last-child{width:100%;font-size:11px}#imageTools{display:flex;flex-wrap:wrap;gap:6px}.annotation-tool,#clearAnnotations{display:block!important;font-size:12px}#annotationStatus{display:block!important;width:100%;font-size:11px;color:var(--muted);margin:6px 0 0}#exportTools{display:flex;gap:8px;border-top:1px solid var(--line)!important}#exportTools button{flex:1;font-size:12px;background:#29312f!important;color:#dae6df!important}#btnSnapshot{border:1px solid #42594c}details.tool-disclosure{border-top:1px solid var(--line);order:2}details.tool-disclosure summary{cursor:pointer;padding:16px 20px;font-size:12px;color:#d8dee0;min-height:48px}details.tool-disclosure summary::marker{color:var(--muted)}#exportTools{order:5}#diagnosticPanel{grid-column:auto!important;width:100%;gap:16px;max-width:none}#diagnosticPanel>.bg-slate-900{background:var(--panel)!important;border-color:var(--line)!important;box-shadow:none!important;padding:20px!important;gap:14px!important}#diagnosticPanel h2{font-size:13px}#diagnosticPanel .bg-slate-950\/70{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0 0 14px!important}#diagnosticPanel .bg-slate-950\/70 p{display:none}#diagnosticPanel [id$=Angle]{font-size:22px;color:#d2e9dc!important;font-weight:500}#diagnosticPanel [id$=Bar]{background:#769b86!important}#diagnosticPanel input[type=checkbox]{width:16px;height:16px}#diagnosticPanel label{min-height:36px}#diagnosticPanel p{line-height:1.7}#diagnosticPanel>.bg-slate-900\/60{background:transparent!important;border:0!important;padding:4px!important;line-height:1.8}.insight-card,.result-card{display:none!important}.text-slate-400{color:var(--muted)!important}.bg-blue-600{background:var(--accent)!important;color:#14231c!important}.bg-slate-800{background:#282f33!important}.control-section-title{font-size:12px;font-weight:600}#scrubber{min-height:24px;touch-action:pan-x}#timeDisplay,#durationDisplay{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}#frameBadge{font-variant-numeric:tabular-nums}.tool-disclosure[open] summary{padding-bottom:0}#workspaceNote{color:var(--muted);font-size:11px;line-height:1.7;padding:14px 4px}#workspaceNote strong{color:#d0d9d4;font-weight:500}kbd{background:#293034!important;color:#cbd7d0!important} @media(max-width:1000px){main{grid-template-columns:minmax(0,1fr) 260px!important;gap:16px!important;padding:20px!important}header{padding:16px 20px!important}header p{display:none}}
+@media(max-width:760px){header{padding:14px 16px!important}header .max-w-7xl{gap:10px}header .max-w-7xl>div:last-child{display:none}header h1{font-size:14px!important}header .w-10{width:32px;height:32px;font-size:11px}main{display:flex!important;flex-direction:column;padding:12px!important;gap:20px!important}#playerColumn{width:100%}.mobile-source-actions{display:flex;gap:8px;order:-1;margin-bottom:12px}.mobile-source-actions>*{min-height:44px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;text-align:center;cursor:pointer}.mobile-source-primary{flex:1;background:var(--accent);color:#14231c;font-weight:600}#videoStage{min-height:260px;aspect-ratio:4/3!important;max-height:64vh}#videoStage.video-portrait{height:60vh;min-height:300px}#floatingPlayback{padding:10px 8px 16px}.floating-playback-row{gap:4px}.floating-playback-row button{padding:8px;min-width:40px}#btnPlayPause{min-width:88px}#diagnosticPanel{width:100%}#diagnosticPanel>.bg-slate-900{display:grid;grid-template-columns:1fr 1fr;gap:16px!important}#diagnosticPanel>.bg-slate-900>div:first-child,#diagnosticPanel>.bg-slate-900>div:last-child{grid-column:1/-1}#dropPrompt .empty-note{font-size:12px!important;padding:0 16px}#frameBadge{font-size:9px}#workspaceNote{padding:12px 4px}}
+@media(max-height:500px) and (orientation:landscape){header{padding:8px 16px!important}main{grid-template-columns:minmax(0,1fr) 260px!important;display:grid!important}#videoStage,#videoStage.video-portrait{height:65vh;min-height:180px;max-height:none}#diagnosticPanel{display:flex}#diagnosticPanel>.bg-slate-900{display:flex}header .w-10{height:28px;width:28px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
 
@@ -234,18 +28,18 @@
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            棒球 AI 姿態逐幀分析器
+            棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.3.2</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.0</span>
           </h1>
-          <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
+          <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
         <button id="btnCamera" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">開啟鏡頭</button>
         <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
-          <span>選 iPhone 膠卷</span>
+          <span>匯入影片</span>
         </label>
         <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
         <input type="file" id="libraryInput" accept="video/*" class="hidden">
@@ -278,7 +72,7 @@
 
         <!-- Empty State Prompt -->
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
-          <p class="text-xl font-bold text-white mb-3">開始分析</p>
+          <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
           <div class="flex flex-wrap justify-center gap-2">
             <label for="cameraInput" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</label>
             <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
@@ -317,7 +111,7 @@
         <label for="frameZoom" class="text-xs text-slate-300">縮放 <span id="frameZoomValue">1.0×</span></label>
         <input id="frameZoom" class="flex-1 min-w-24 max-w-52 accent-lime-300" type="range" min="1" max="3" step="0.1" value="1" aria-label="影片縮放倍率">
         <button id="btnResetFraming" type="button" class="bg-slate-800 text-xs px-3 py-2 rounded-md">還原取景</button>
-        <button id="btnLockFraming" type="button" aria-pressed="false" class="bg-slate-800 text-xs px-3 py-2 rounded-md" title="鎖定人物取景與遮罩位置">鎖定遮罩</button>
+        <button id="btnLockFraming" type="button" aria-pressed="false" class="bg-slate-800 text-xs px-3 py-2 rounded-md" title="鎖定人物取景與遮罩位置">鎖定取景</button>
         <span class="text-xs text-slate-400">放大後拖曳人物調整位置，原始影片不變</span>
       </div>
 
@@ -338,7 +132,7 @@
         <div class="control-section-title">畫面工具</div>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
-        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">量角度</button>
+        <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="angle">角度參考線</button>
         <button id="clearAnnotations" class="bg-slate-800 text-xs px-3 py-2 rounded-md">清除標記</button>
         <span class="hidden sm:block h-6 border-l border-slate-700 mx-1" aria-hidden="true"></span>
         <span id="annotationStatus" class="text-xs text-lime-300 ml-auto basis-full sm:basis-auto">選一個工具，在畫面上拖曳</span>
@@ -358,9 +152,9 @@
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-lg">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
-            AI 正在看這個動作
+            畫面觀測值
           </h2>
-          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">即時分析</span>
+          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">2D 參考</span>
         </div>
 
         <div class="insight-card"><strong>動作亮點</strong><p class="text-sm text-slate-200 mt-1">先載入影片，AI 會在這裡告訴你目前看見的重點。</p></div>
@@ -392,7 +186,7 @@
         <!-- Angle metric: Lead Knee -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
           <div class="flex justify-between items-center text-xs mb-1">
-            <span class="text-slate-400 font-medium">前膝伸展角度 (前腳煞車)</span>
+            <span class="text-slate-400 font-medium">左膝夾角</span>
             <span id="leadKneeAngle" class="text-emerald-400 font-bold font-mono text-sm">--°</span>
           </div>
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -404,7 +198,7 @@
         <!-- Angle metric: Hip-Shoulder Separation Proxy -->
         <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
           <div class="flex justify-between items-center text-xs mb-1">
-            <span class="text-slate-400 font-medium">軀幹側傾角度 (Spine Tilt)</span>
+            <span class="text-slate-400 font-medium">軀幹影像傾角</span>
             <span id="trunkTiltAngle" class="text-amber-400 font-bold font-mono text-sm">--°</span>
           </div>
           <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -456,6 +250,27 @@
     </div>
   </main>
 
+
+  <script>
+  // Build one consistent workspace without duplicating controls or event handlers.
+  const panel = document.getElementById('controlPanel');
+  panel.prepend(document.getElementById('videoDeck'));
+  for (const [id, title] of [['videoFraming','取景與縮放'], ['imageTools','畫線與標記']]) {
+    const section = document.getElementById(id);
+    const details = document.createElement('details');
+    details.className = 'tool-disclosure';
+    const summary = document.createElement('summary'); summary.textContent = title;
+    details.append(summary, section); panel.insertBefore(details, document.getElementById('exportTools'));
+  }
+  const speeds = document.createElement('div'); speeds.id = 'speedRow'; speeds.setAttribute('aria-label','播放速度');
+  speeds.innerHTML = '<span>播放速度</span>' + [0.25,0.5,0.75,1].map(n => `<button type="button" class="speed-btn" data-speed="${n}" aria-pressed="${n===1}">${n}×</button>`).join('');
+  document.getElementById('floatingPlayback').append(speeds);
+  const note = document.createElement('p'); note.id='workspaceNote'; note.innerHTML='<strong>影片在此裝置處理</strong> · 逐格以 30 fps 估算 · 角度為 2D 影像參考';
+  document.getElementById('playerColumn').append(note);
+  document.getElementById('statusText').setAttribute('role','status');
+  document.getElementById('statusText').setAttribute('aria-live','polite');
+  document.getElementById('dropPrompt').addEventListener('click', event => event.stopPropagation());
+  </script>
   <script>
     // State & Elements
     const video = document.getElementById('videoEl');
@@ -513,6 +328,12 @@
       annotationCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
     window.addEventListener('resize', fitAnnotationCanvas);
+    document.querySelectorAll('.tool-disclosure').forEach(item => item.addEventListener('toggle', () => {
+      if (!item.open && item.contains(document.getElementById('imageTools'))) {
+        annotationTool = null; annotationCanvas.style.pointerEvents = 'none';
+        document.querySelectorAll('.annotation-tool').forEach(button => { button.setAttribute('aria-pressed','false'); button.classList.remove('bg-lime-300','text-slate-950'); });
+      }
+    }));
     function pointOnAnnotation(event) {
       const rect = annotationCanvas.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -532,14 +353,15 @@
     }
     annotationCanvas.addEventListener('pointerdown', event => { if (!annotationTool) return; annotationDrawing = true; annotationStart = pointOnAnnotation(event); annotationCanvas.setPointerCapture(event.pointerId); });
     annotationCanvas.addEventListener('pointermove', drawAnnotation);
-    annotationCanvas.addEventListener('pointerup', event => { annotationDrawing = false; drawAnnotation(event); });
+    annotationCanvas.addEventListener('pointerup', event => { drawAnnotation(event); annotationDrawing = false; });
     document.querySelectorAll('.annotation-tool').forEach(tool => tool.addEventListener('click', () => {
-      annotationTool = tool.dataset.tool;
-      annotationCanvas.style.pointerEvents = 'auto';
+      annotationTool = annotationTool === tool.dataset.tool ? null : tool.dataset.tool;
+      annotationCanvas.style.pointerEvents = annotationTool ? 'auto' : 'none';
       document.querySelectorAll('.annotation-tool').forEach(item => item.classList.remove('bg-lime-300', 'text-slate-950'));
-      tool.classList.add('bg-lime-300', 'text-slate-950');
-      document.getElementById('annotationStatus').textContent = `${tool.textContent}：在影片上拖曳`;
-      fitAnnotationCanvas();
+      if (annotationTool) tool.classList.add('bg-lime-300', 'text-slate-950');
+      document.querySelectorAll('.annotation-tool').forEach(item => item.setAttribute('aria-pressed', String(item.dataset.tool === annotationTool)));
+      document.getElementById('annotationStatus').textContent = annotationTool ? `${tool.textContent}：在影片上拖曳，再按一次可退出` : '標記工具已關閉，可拖曳取景';
+      if (!annotationCanvas.width || annotationCanvas.width === 300) fitAnnotationCanvas();
     }));
     document.getElementById('clearAnnotations').addEventListener('click', () => { annotationCtx.clearRect(0, 0, annotationCanvas.clientWidth, annotationCanvas.clientHeight); });
 
@@ -592,7 +414,7 @@
     btnLockFraming.addEventListener('click', () => {
       framingLocked = !framingLocked;
       btnLockFraming.setAttribute('aria-pressed', String(framingLocked));
-      btnLockFraming.textContent = framingLocked ? '已鎖定遮罩' : '鎖定遮罩';
+      btnLockFraming.textContent = framingLocked ? '已鎖定取景' : '鎖定取景';
       btnLockFraming.classList.toggle('bg-blue-600', framingLocked);
       btnLockFraming.classList.toggle('text-white', framingLocked);
       frameZoomInput.disabled = framingLocked;
@@ -1073,9 +895,7 @@
       }
     });
 
-    dropPrompt.addEventListener('click', () => {
-      videoInput.click();
-    });
+
 
     // Drag and drop video file
     window.addEventListener('dragover', (e) => e.preventDefault());
@@ -1395,3 +1215,4 @@
   </script>
 </body>
 </html>
+
