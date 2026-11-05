@@ -73,6 +73,9 @@
       -webkit-tap-highlight-color: transparent;
     }
     #scrubber { touch-action: pan-x; min-height: 28px; accent-color: #d8ff45; }
+    #frameZoom { appearance:none; height:8px; min-height:8px!important; border-radius:999px; background:#31473f; accent-color:var(--lime); }
+    #frameZoom::-webkit-slider-thumb { appearance:none; width:22px; height:22px; border-radius:50%; background:var(--lime); border:0; }
+    #frameZoom::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:var(--lime); border:0; }
     #outputCanvas.frame-pan-active { touch-action:none; cursor:grab; }
     #outputCanvas.frame-pan-active:active { cursor:grabbing; }
     #frameZoom, #btnResetFraming { touch-action:manipulation; }
@@ -83,6 +86,7 @@
     .floating-playback-row::-webkit-scrollbar { display:none; }
     .floating-playback button { flex:0 0 auto; min-width:52px; }
     #videoStage { order:1; }
+    #controlPanel { order:2; }
     #floatingPlayback { order:2; }
     #videoFraming { order:3; }
     #videoDeck { order:4; }
