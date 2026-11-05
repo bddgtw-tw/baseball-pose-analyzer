@@ -27,6 +27,13 @@
 .source-toolbar .mobile-source-secondary{background:#1a2022;color:#e0e7e3}
 .source-toolbar>input{display:none!important}
 @media(max-width:760px){.source-toolbar .mobile-source-primary{flex:1}.source-toolbar>button{padding:10px 12px}}
+
+/* Empty state has one central action; replacement appears only after loading. */
+#playerColumn>.source-toolbar{display:none!important}
+#playerColumn.has-video>.source-toolbar{display:flex!important}
+#btnCamera,#btnDemo{display:none!important}
+#dropPrompt .empty-source-button{margin-top:12px;min-height:48px;padding:12px 32px;background:var(--accent);color:#14231c;font-size:15px;font-weight:600;border:0;border-radius:9px}
+.source-toolbar #changeVideo{flex:0 1 auto}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -42,7 +49,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.4</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.5</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -79,9 +86,9 @@
     <div id="playerColumn" class="lg:col-span-4 flex flex-col gap-3">
       <!-- Compact mobile source controls; accessible after the empty state disappears -->
       <div class="mobile-source-actions source-toolbar" aria-label="影片來源">
-        <button type="button" id="sourceSelect" class="mobile-source-primary">選擇影片</button>
-        <button type="button" id="btnCamera" class="mobile-source-secondary">對位錄影</button>
-        <button type="button" id="btnDemo" class="mobile-source-secondary">示範</button>
+        <button type="button" id="changeVideo" class="mobile-source-primary">更換影片</button>
+        <button type="button" id="btnCamera" hidden aria-hidden="true" tabindex="-1">對位錄影</button>
+        <button type="button" id="btnDemo" hidden aria-hidden="true" tabindex="-1">示範</button>
         <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
         <input type="file" id="libraryInput" accept="video/*" class="hidden">
         <input type="file" id="videoInput" accept="video/*" class="hidden">
@@ -97,6 +104,7 @@
         <!-- Empty State Prompt -->
           <div id="dropPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-6 border-2 border-dashed border-slate-700 rounded-2xl m-3 hover:border-blue-500 transition cursor-pointer">
           <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
+          <button type="button" id="sourceSelect" class="empty-source-button">選擇影片</button>
 
         </div>
 
@@ -338,6 +346,7 @@
     const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
     const selectedAngles = () => new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
     function revealPlaybackControls() {
+      playerColumn.classList.add('has-video');
       floatingPlayback.classList.remove('hidden');
       playerColumn.classList.add('landscape-controls-ready');
     }
@@ -1046,6 +1055,7 @@
       statusText.textContent='網頁相機已關閉，請按上方「選擇影片」，再選錄影或圖庫。';
       document.getElementById('sourceSelect').focus();
     });
+    document.getElementById('changeVideo').addEventListener('click',()=>document.getElementById('sourceSelect').click());
     document.getElementById('sourceSelect').addEventListener('click',()=>{
       if(isExporting || (captureRecorder && captureRecorder.state!=='inactive')){
         statusText.textContent='請先停止錄影或等匯出完成';return;
