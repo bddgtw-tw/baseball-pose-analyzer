@@ -17,8 +17,6 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 #scrubber{appearance:none;background:transparent!important;height:24px}#scrubber::-webkit-slider-runnable-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;cursor:pointer}#scrubber::-moz-range-track{height:4px;background:#46514c;border-radius:9px}#scrubber::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--accent)}
-
-#urlDialog{margin:auto;width:min(480px,calc(100% - 32px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;background:#1a1e21;color:#edf0f2;box-shadow:0 24px 80px #0008}#urlDialog::backdrop{background:#080b0dcc;backdrop-filter:blur(5px)}.url-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.url-heading h2{font-size:18px;font-weight:600}.url-heading button{width:44px;background:transparent;color:var(--muted)}#urlHelp,.url-note{font-size:12px;line-height:1.8;color:var(--muted);margin:12px 0}#urlForm>label{display:block;font-size:12px;margin:20px 0 8px}#videoUrl{width:100%;min-height:48px;border:1px solid #4b5850;border-radius:8px;background:#111416;padding:12px;color:#edf0f2;font-size:16px}#urlMessage{min-height:20px;color:#efc29d;font-size:12px;line-height:1.7}.url-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.url-actions button{padding:10px 20px;background:#30383b;font-size:13px}#loadUrl{background:var(--accent);color:#14231c}[data-open-url]{min-height:44px}#dropPrompt [data-open-url]{font-size:13px}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -34,7 +32,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.2</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.1</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -48,7 +46,6 @@
         <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
         <input type="file" id="libraryInput" accept="video/*" class="hidden">
         <input type="file" id="videoInput" accept="video/*" class="hidden">
-        <button type="button" data-open-url class="bg-slate-800 text-slate-200 text-xs px-3 py-2 rounded-lg">貼上網址</button>
         <button id="btnDemo" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">
           先看示範
         </button>
@@ -56,17 +53,6 @@
     </div>
   </header>
 
-  <dialog id="urlDialog" aria-labelledby="urlTitle" aria-describedby="urlHelp">
-    <form id="urlForm">
-      <div class="url-heading"><h2 id="urlTitle">從網址載入影片</h2><button type="button" id="closeUrlDialog" aria-label="關閉網址視窗">✕</button></div>
-      <p id="urlHelp">貼上 HTTPS 影片直連（例如 MP4、WebM）。影片網站須允許跨來源讀取，才能繪製骨架與匯出。</p>
-      <label for="videoUrl">影片網址</label>
-      <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4" required autocomplete="off" spellcheck="false" aria-describedby="urlHelp urlMessage">
-      <p class="url-note">YouTube、社群貼文與 Google Drive 分享頁不支援；請先下載影片，再選擇檔案。</p>
-      <p id="urlMessage" role="status" aria-live="polite"></p>
-      <div class="url-actions"><button type="button" id="cancelUrlDialog">取消</button><button type="submit" id="loadUrl">載入影片</button></div>
-    </form>
-  </dialog>
   <!-- Main Content Grid -->
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
 
@@ -76,7 +62,6 @@
       <div class="mobile-source-actions" aria-label="影片來源">
         <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
         <label for="cameraInput" class="mobile-source-secondary">拍攝</label>
-        <button type="button" data-open-url class="mobile-source-secondary">網址</button>
         <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
       </div>
       <!-- Video Screen Container -->
@@ -92,7 +77,7 @@
           <p class="text-xl font-bold text-white mb-3">每個動作，都值得慢慢看。</p><p class="empty-note">匯入一段投球或打擊影片，逐格觀察身體的移動。</p>
           <div class="flex flex-wrap justify-center gap-2">
             <label for="cameraInput" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</label>
-            <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label><button type="button" data-open-url class="bg-slate-800 text-slate-100 text-sm px-4 py-3 rounded-lg">貼上網址</button>
+            <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
           </div>
         </div>
 
@@ -762,57 +747,9 @@
       tick();
     }
 
-
-    const urlDialog = document.getElementById('urlDialog');
-    const videoUrlInput = document.getElementById('videoUrl');
-    const urlMessage = document.getElementById('urlMessage');
-    let remoteLoadTimer = null;
-    let localObjectUrl = null;
-    function validateVideoUrl(raw) {
-      let parsed;
-      try { parsed = new URL(raw.trim()); } catch { throw new Error('請輸入完整的 HTTPS 影片網址。'); }
-      if (parsed.protocol !== 'https:') throw new Error('請使用 HTTPS 影片網址。');
-      if (parsed.username || parsed.password) throw new Error('請使用不含帳號密碼的影片網址。');
-      if (/(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com|drive\.google\.com|docs\.google\.com|instagram\.com|facebook\.com|tiktok\.com)$/.test(parsed.hostname)) {
-        throw new Error('這是影片或分享頁面，請先下載影片，再使用「選擇影片」。');
-      }
-      return parsed.href;
-    }
-    document.querySelectorAll('[data-open-url]').forEach(button => button.addEventListener('click', () => {
-      urlMessage.textContent = ''; urlDialog.showModal(); videoUrlInput.focus();
-    }));
-    function closeUrlDialog() { urlDialog.close(); }
-    document.getElementById('closeUrlDialog').addEventListener('click', closeUrlDialog);
-    document.getElementById('cancelUrlDialog').addEventListener('click', closeUrlDialog);
-    document.getElementById('urlForm').addEventListener('submit', event => {
-      event.preventDefault();
-      if (isExporting) { urlMessage.textContent = '請等影片匯出完成後再更換來源。'; return; }
-      try {
-        const url = validateVideoUrl(videoUrlInput.value);
-        urlMessage.textContent = '正在讀取影片…';
-        loadVideoSource(url);
-      } catch (error) { urlMessage.textContent = error.message; }
-    });
-    function remoteLoadFailed(message) {
-      clearTimeout(remoteLoadTimer); remoteLoadTimer = null;
-      statusText.textContent = message;
-      urlMessage.textContent = message;
-      dropPrompt.style.display = '';
-    }
-    video.addEventListener('error', () => {
-      remoteLoadFailed('影片無法載入：請確認格式、連結權限及跨來源設定，或下載後選擇檔案。');
-    });
-    video.addEventListener('loadeddata', () => {
-      clearTimeout(remoteLoadTimer); remoteLoadTimer = null;
-      if (urlDialog.open) urlDialog.close();
-    });
-
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
-      if (isExporting) { statusText.textContent = '請等影片匯出完成後再更換來源'; return; }
-      clearTimeout(remoteLoadTimer); remoteLoadTimer = null;
       pauseVideo();
-      if (localObjectUrl) { URL.revokeObjectURL(localObjectUrl); localObjectUrl = null; }
       currentPoseLandmarks = null;
       lastPaintedVideoTime = -1;
       dropPrompt.style.display = 'none';
@@ -822,7 +759,7 @@
       if (typeof fileOrUrl === 'string') {
         src = fileOrUrl;
       } else {
-        src = URL.createObjectURL(fileOrUrl); localObjectUrl = src;
+        src = URL.createObjectURL(fileOrUrl);
       }
 
       if (video.srcObject) {
@@ -831,7 +768,8 @@
       }
       revealPlaybackControls();
       resetFraming();
-      video.crossOrigin = 'anonymous';
+      video.src = src;
+      video.load();
       video.onloadedmetadata = () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -847,13 +785,6 @@
           processCurrentVideoFrame();
         }, 200);
       };
-      if (typeof fileOrUrl === 'string') {
-        remoteLoadTimer = setTimeout(() => {
-          if (video.readyState < 2) remoteLoadFailed('影片讀取較久或伺服器不允許讀取；可換連結，或下載後選擇檔案。');
-        }, 15000);
-      }
-      video.src = src;
-      video.load();
     }
 
     // Time formatting helper
@@ -1232,7 +1163,7 @@
 
     // Keyboard Shortcuts (Space, ArrowLeft, ArrowRight)
     window.addEventListener('keydown', (e) => {
-      if (urlDialog.open || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'SUMMARY'].includes(e.target.tagName) || e.target.isContentEditable) return;
+      if (e.target.tagName === 'INPUT') return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (isPlaying) pauseVideo();
