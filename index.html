@@ -49,7 +49,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.6</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.7</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -241,7 +241,7 @@
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>播放優先（播放時不顯示骨架）</span><input type="checkbox" id="playbackPriority"></label>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>AI 動作辨識</span><input type="checkbox" id="toggleAI" checked></label>
-          <p class="text-[10px] text-slate-400">預設播放時持續辨識並顯示骨架（約每秒 10 次，可能影響流暢度）。勾選「播放優先」可關閉播放中的辨識。</p>
+          <p class="text-[10px] text-slate-400">播放時以 512 像素輕量取樣顯示骨架；暫停後以 640 像素分析。勾選「播放優先」可關閉播放中的辨識。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
             <span>顯示身體骨架與中心參考線</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
@@ -344,7 +344,9 @@
     const speedButtons = document.querySelectorAll('.speed-btn');
     const toggleSkeleton = document.getElementById('toggleSkeleton');
     const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
-    const selectedAngles = () => new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
+    let selectedAngleIds = new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
+    const selectedAngles = () => selectedAngleIds;
+    let bodyPoseConnectionsCache = null;
     function revealPlaybackControls() {
       playerColumn.classList.add('has-video');
       floatingPlayback.classList.remove('hidden');
@@ -513,7 +515,7 @@
     function onPoseResults(results) {
       if (isPlaying && document.getElementById('playbackPriority').checked) { currentPoseLandmarks = null; return; }
       currentPoseLandmarks = document.getElementById('toggleAI').checked ? results.poseLandmarks || null : null;
-      if (video.videoWidth && video.videoHeight) renderCurrentFrame();
+      if (!isPlaying && video.videoWidth && video.videoHeight) renderCurrentFrame();
     }
 
     // Visual 2D reference markers, NOT an anatomical spine or physical center of mass.
@@ -633,7 +635,7 @@
       // Keep all 33 landmarks for calculations, but hide facial nodes (0–10).
       if (currentPoseLandmarks && toggleSkeleton.checked) {
         if (window.drawConnectors) {
-          const bodyConnections = POSE_CONNECTIONS.filter(([start, end]) => start >= 11 && end >= 11);
+          const bodyConnections = bodyPoseConnectionsCache || (bodyPoseConnectionsCache = POSE_CONNECTIONS.filter(([start, end]) => start >= 11 && end >= 11));
           drawConnectors(ctx, currentPoseLandmarks, bodyConnections, {
             color: '#ef4444',
             lineWidth: Math.max(2, Math.round(canvas.width / 400))
@@ -656,12 +658,14 @@
 
       // Update counters
       const curTime = video.currentTime || 0;
-      const curFrame = Math.round(curTime * fps);
-      currentFrameText.textContent = curFrame;
-      currentTimeText.textContent = curTime.toFixed(2) + "s";
-      timeDisplay.textContent = formatTime(curTime);
-      if (video.duration) {
-        if (!isScrubbing && pendingSeekTime === null) {
+      const uiNow = performance.now();
+      if (!isPlaying || uiNow - lastPlaybackUiUpdateAt >= 100) {
+        lastPlaybackUiUpdateAt = uiNow;
+        const curFrame = Math.round(curTime * fps);
+        currentFrameText.textContent = curFrame;
+        currentTimeText.textContent = curTime.toFixed(2) + "s";
+        timeDisplay.textContent = formatTime(curTime);
+        if (video.duration && !isScrubbing && pendingSeekTime === null) {
           scrubber.value = String(Math.round(curTime * fps));
         }
       }
@@ -670,6 +674,7 @@
     // Update Telemetry Panel & Canvas Angle Overlays
     function updateBiomechanics(lm) {
       if (!lm) return;
+      const refreshReadouts = lm !== lastBiomechanicsLandmarks;
       const w = canvas.width;
       const h = canvas.height;
 
@@ -683,26 +688,36 @@
 
       // 1. Right Elbow Angle (12-14-16)
       const rElbow = calculateAngle(lm[12], lm[14], lm[16]);
-      rightElbowAngleText.textContent = rElbow + "°";
-      rightElbowBar.style.width = Math.min(100, (rElbow / 180) * 100) + "%";
+      if (refreshReadouts) {
+        rightElbowAngleText.textContent = rElbow + "°";
+        rightElbowBar.style.width = Math.min(100, (rElbow / 180) * 100) + "%";
+      }
 
       // 2. Left Elbow Angle (11-13-15)
       const lElbow = calculateAngle(lm[11], lm[13], lm[15]);
-      leftElbowAngleText.textContent = lElbow + "°";
-      leftElbowBar.style.width = Math.min(100, (lElbow / 180) * 100) + "%";
+      if (refreshReadouts) {
+        leftElbowAngleText.textContent = lElbow + "°";
+        leftElbowBar.style.width = Math.min(100, (lElbow / 180) * 100) + "%";
+      }
 
       // 3. Lead Knee (Check left knee 23-25-27 or right knee 24-26-28)
       const lKnee = calculateAngle(lm[23], lm[25], lm[27]);
-      leadKneeAngleText.textContent = lKnee + "°";
-      leadKneeBar.style.width = Math.min(100, (lKnee / 180) * 100) + "%";
+      if (refreshReadouts) {
+        leadKneeAngleText.textContent = lKnee + "°";
+        leadKneeBar.style.width = Math.min(100, (lKnee / 180) * 100) + "%";
+      }
 
       // 4. Spine / Trunk Tilt (Mid-Hip to Mid-Shoulder relative to vertical)
       const midShoulder = { x: (lm[11].x + lm[12].x) / 2, y: (lm[11].y + lm[12].y) / 2 };
       const midHip = { x: (lm[23].x + lm[24].x) / 2, y: (lm[23].y + lm[24].y) / 2 };
       const verticalPt = { x: midHip.x, y: midHip.y - 0.5 };
       const trunkTilt = calculateAngle(verticalPt, midHip, midShoulder);
-      trunkTiltAngleText.textContent = trunkTilt + "°";
-      trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
+      if (refreshReadouts) {
+        trunkTiltAngleText.textContent = trunkTilt + "°";
+        trunkTiltBar.style.width = Math.min(100, (trunkTilt / 90) * 100) + "%";
+      }
+
+      if (refreshReadouts) lastBiomechanicsLandmarks = lm;
 
       // Display selected 2D projection angles only; no extra face landmarks.
       const rightKnee = calculateAngle(lm[24], lm[26], lm[28]);
@@ -734,6 +749,8 @@
     const poseInputContext = poseInputCanvas.getContext('2d', { alpha:false });
     let lastPoseStartedAt = -Infinity;
     let lastPaintedVideoTime = -1;
+    let lastPlaybackUiUpdateAt = 0;
+    let lastBiomechanicsLandmarks = null;
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame() {
       if (!pose || isProcessingPose || !video.videoWidth || video.readyState < 2 || !document.getElementById('toggleAI').checked) return;
@@ -744,7 +761,8 @@
       isProcessingPose = true;
       try {
         // Preserve aspect ratio while keeping inference independent of 1080p/4K source size.
-        const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+        const inferenceLimit = isPlaying ? 512 : 640;
+        const scale = Math.min(1, inferenceLimit / Math.max(video.videoWidth, video.videoHeight));
         const width = Math.max(1, Math.round(video.videoWidth * scale));
         const height = Math.max(1, Math.round(video.videoHeight * scale));
         if (poseInputCanvas.width !== width || poseInputCanvas.height !== height) {
@@ -1226,7 +1244,10 @@
     });
     // Toggle checkboxes
     toggleSkeleton.addEventListener('change', renderCurrentFrame);
-    angleDisplayOptions.forEach(input => input.addEventListener('change', renderCurrentFrame));
+    angleDisplayOptions.forEach(input => input.addEventListener('change', () => {
+      selectedAngleIds = new Set(angleDisplayOptions.filter(option => option.checked).map(option => option.dataset.angle));
+      renderCurrentFrame();
+    }));
 
     // Snapshot button
     btnSnapshot.addEventListener('click', () => {
