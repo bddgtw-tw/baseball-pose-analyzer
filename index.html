@@ -10,7 +10,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
-    :root { --ink:#f6f7ef; --muted:#9aa39b; --ground:#07100f; --panel:#0d1a18; --panel-2:#12231f; --line:#22352f; --lime:#d8ff45; --green:#69e09b; --orange:#ff9f43; }
+    :root {
+      --ink:#f4f7ed; --muted:#9ca99f; --ground:#07100f; --panel:#0d1a18; --panel-2:#12231f;
+      --line:#294039; --line-strong:#3b5b4e; --lime:#d8ff45; --lime-soft:#b9e83b;
+      --green:#62ddb0; --orange:#ffad56; --danger:#ff7777; --focus:#b8f4ff;
+      --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px;
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+    }
     body { font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif; background:var(--ground); color:var(--ink); }
     header { background:rgba(7,16,15,.92)!important; border-color:var(--line)!important; }
     header .max-w-7xl { max-width:1400px; }
@@ -29,8 +35,13 @@
     .hover\\:bg-blue-500:hover, .hover\\:bg-indigo-500:hover { background:#e9ff8a!important; }
     .bg-emerald-600 { background:var(--green)!important; color:#07100f!important; }
     .bg-amber-500 { background:var(--orange)!important; }
-    .rounded-xl, .rounded-2xl, .rounded-lg { border-radius:14px!important; }
-    button, label[for=videoInput], label[for=libraryInput], label[for=cameraInput] { min-height:40px; transition:transform .18s ease, background .18s ease; }
+    .rounded-xl, .rounded-2xl, .rounded-lg { border-radius:var(--radius-md)!important; }
+    button, label[for=videoInput], label[for=libraryInput], label[for=cameraInput] {
+      min-height:44px; transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    button:focus-visible, label:focus-visible, input:focus-visible {
+      outline:3px solid var(--focus); outline-offset:2px;
+    }
     button:hover, label[for=videoInput]:hover, label[for=libraryInput]:hover, label[for=cameraInput]:hover { transform:translateY(-1px); }
     code, kbd { color:var(--lime)!important; background:#172a23!important; }
     .slider::-webkit-slider-thumb { background:var(--lime); box-shadow:0 0 0 4px rgba(216,255,69,.15); }
@@ -51,7 +62,7 @@
       position:relative; z-index:2; width:100%;
       display:flex; flex-direction:column; align-items:center;
       gap:5px; padding:8px; border-radius:12px;
-      background:var(--panel); border:1px solid var(--line);
+      background:var(--panel-2); border:1px solid var(--line-strong);
       pointer-events:auto;
     }
     .floating-playback.hidden { display:none; }
@@ -83,6 +94,22 @@
     #exportTools .control-section-title { flex-basis:100%; }
     #exportTools button { flex:1 1 140px; }
     .mobile-source-actions { display:none; }
+    #controlPanel > div, #videoDeck, .bg-slate-900.border.border-slate-800.rounded-xl {
+      border-color:var(--line)!important;
+    }
+    #controlPanel button, #controlPanel label, #controlPanel input[type=range] { min-height:44px; }
+    #btnPlayPause, .mobile-source-primary { background:var(--lime)!important; color:#0a1512!important; }
+    #btnPlayPause:hover, .mobile-source-primary:hover { background:#e7ff77!important; }
+    #btnSnapshot { background:var(--green)!important; color:#07100f!important; }
+    #btnExportVideo { background:var(--lime)!important; color:#0a1512!important; }
+    .floating-playback-row button, #videoFraming button, #imageTools button, #exportTools button {
+      border:1px solid transparent;
+    }
+    .floating-playback-row button:not(#btnPlayPause):hover,
+    #videoFraming button:hover, #imageTools button:hover { border-color:var(--line-strong); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior:auto!important; transition-duration:0.01ms!important; animation-duration:0.01ms!important; }
+    }
     @media (max-width:760px) {
       .floating-playback { padding:5px; gap:3px; }
       .floating-playback-row { justify-content:center; gap:4px; width:100%; }
@@ -196,8 +223,8 @@
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-4 py-3">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/20">
-          ⚾
+        <div class="w-10 h-10 rounded-xl bg-lime-300 flex items-center justify-center font-black text-sm text-slate-950 shadow-none" aria-hidden="true">
+          AI
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
