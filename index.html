@@ -123,20 +123,21 @@
       header .w-10 { width:26px!important; height:26px!important; min-width:26px!important; }
       header .w-10::after { font-size:1rem!important; }
       main { padding:4px 8px 8px!important; gap:6px!important; }
-      main > .lg\:col-span-3 { gap:6px!important; min-width:0; }
-      .mobile-source-actions { display:flex; gap:6px; }
+      main > .lg\:col-span-3 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "deck" "framing" "tools"; gap:6px!important; min-width:0; align-items:start; }
+      main > .lg\:col-span-3.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "deck deck" "framing framing" "tools tools"; }
+      .mobile-source-actions { display:flex; grid-area:source; gap:6px; }
       .mobile-source-actions > * { min-height:30px; padding:4px 9px; font-size:11px; }
       .stage-track { margin-bottom:8px; }
       .bg-black { border-radius:12px!important; }
-      #videoStage { width:min(100%, calc(clamp(150px, calc(100svh - 185px), 220px) * 16 / 9)); height:clamp(150px, calc(100svh - 185px), 220px); aspect-ratio:16 / 9!important; margin-inline:auto; flex:0 0 auto; }
-      #videoStage.video-portrait { width:auto; height:clamp(150px, calc(100svh - 185px), 220px); aspect-ratio:9 / 16!important; }
-      .floating-playback { padding:3px; gap:0; border-radius:10px; order:3; }
-      .floating-playback-row { gap:3px; width:100%; }
-      .floating-playback-row button { min-height:44px; padding:8px 10px; font-size:12px; }
-      #videoDeck { order:4; margin-top:0; padding:4px!important; }
+      #videoStage { grid-area:stage; width:min(100%, calc((100svh - 90px) * 16 / 9)); height:clamp(160px, calc(100svh - 90px), 260px); aspect-ratio:16 / 9!important; margin-inline:auto; flex:0 0 auto; }
+      #videoStage.video-portrait { width:auto; height:clamp(160px, calc(100svh - 90px), 260px); aspect-ratio:9 / 16!important; }
+      .floating-playback { grid-area:playback; align-self:center; width:116px; padding:3px; gap:0; border-radius:10px; }
+      .floating-playback-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; width:100%; }
+      .floating-playback-row button { min-width:0; min-height:44px; padding:8px 4px; font-size:12px; }
+      #videoDeck { grid-area:deck; margin-top:0; padding:4px!important; }
       #videoDeck > div { min-height:42px; }
-      #videoFraming { order:5; margin-top:0; }
-      #imageTools { order:6; margin-top:0; }
+      #videoFraming { grid-area:framing; margin-top:0; }
+      #imageTools { grid-area:tools; margin-top:0; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
       .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
     }
@@ -164,7 +165,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.7</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.8</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -189,7 +190,7 @@
   <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
 
     <!-- Left / Center: Video & Canvas Player (3 Cols) -->
-    <div class="lg:col-span-3 flex flex-col gap-3">
+    <div id="playerColumn" class="lg:col-span-3 flex flex-col gap-3">
       <!-- Compact mobile source controls; accessible after the empty state disappears -->
       <div class="mobile-source-actions" aria-label="影片來源">
         <label for="libraryInput" class="mobile-source-primary">選擇／更換影片</label>
@@ -398,6 +399,7 @@
     const btnPlayPause = document.getElementById('btnPlayPause');
     const btnLoop = document.getElementById('btnLoop');
     const floatingPlayback = document.getElementById('floatingPlayback');
+    const playerColumn = document.getElementById('playerColumn');
     const playIcon = document.getElementById('playIcon');
     const btnPrev1 = document.getElementById('btnPrev1');
     const btnNext1 = document.getElementById('btnNext1');
@@ -417,6 +419,10 @@
     const toggleSkeleton = document.getElementById('toggleSkeleton');
     const angleDisplayOptions = [...document.querySelectorAll('#angleDisplayOptions [data-angle]')];
     const selectedAngles = () => new Set(angleDisplayOptions.filter(input => input.checked).map(input => input.dataset.angle));
+    function revealPlaybackControls() {
+      revealPlaybackControls();
+      playerColumn.classList.add('landscape-controls-ready');
+    }
 
     function fitAnnotationCanvas() {
       const rect = annotationCanvas.getBoundingClientRect();
@@ -940,7 +946,7 @@
         video.muted = true;
         video.playsInline = true;
         dropPrompt.style.display = 'none';
-        floatingPlayback.classList.remove('hidden');
+        revealPlaybackControls();
         statusText.textContent = '手機鏡頭預覽中';
         await video.play();
         isPlaying = true;
@@ -1212,7 +1218,7 @@
     // Load Demo Video (Simulated Baseball Swing Animation Canvas)
     btnDemo.addEventListener('click', () => {
       dropPrompt.style.display = 'none';
-      floatingPlayback.classList.remove('hidden');
+      revealPlaybackControls();
       statusText.textContent = "載入示範測試球員...";
       
       // Create an animated canvas video stream for testing without files
