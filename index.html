@@ -71,6 +71,11 @@
     }
     .floating-playback-row::-webkit-scrollbar { display:none; }
     .floating-playback button { flex:0 0 auto; min-width:52px; }
+    #videoStage { order:1; }
+    #floatingPlayback { order:2; }
+    #videoFraming { order:3; }
+    #videoDeck { order:4; }
+    #imageTools { order:5; }
     .mobile-source-actions { display:none; }
     @media (max-width:760px) {
       .floating-playback { padding:5px; gap:3px; }
@@ -123,8 +128,8 @@
       header .w-10 { width:26px!important; height:26px!important; min-width:26px!important; }
       header .w-10::after { font-size:1rem!important; }
       main { padding:4px 8px 8px!important; gap:6px!important; }
-      main > .lg\:col-span-3 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "deck" "framing" "tools"; gap:6px!important; min-width:0; align-items:start; }
-      main > .lg\:col-span-3.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "deck deck" "framing framing" "tools tools"; }
+      main > .lg\:col-span-3 { display:grid!important; grid-template-columns:minmax(0,1fr); grid-template-areas:"source" "stage" "playback" "framing" "deck" "tools"; gap:6px!important; min-width:0; align-items:start; }
+      main > .lg\:col-span-3.landscape-controls-ready { grid-template-columns:minmax(0,1fr) 116px; grid-template-areas:"source source" "stage playback" "framing framing" "deck deck" "tools tools"; }
       .mobile-source-actions { display:flex; grid-area:source; gap:6px; }
       .mobile-source-actions > * { min-height:30px; padding:4px 9px; font-size:11px; }
       .stage-track { margin-bottom:8px; }
@@ -165,7 +170,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.8</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.9</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -244,6 +249,7 @@
         <label for="frameZoom" class="text-xs text-slate-300">縮放 <span id="frameZoomValue">1.0×</span></label>
         <input id="frameZoom" class="flex-1 min-w-24 max-w-52 accent-lime-300" type="range" min="1" max="3" step="0.1" value="1" aria-label="影片縮放倍率">
         <button id="btnResetFraming" type="button" class="bg-slate-800 text-xs px-3 py-2 rounded-md">還原取景</button>
+        <button id="btnLockFraming" type="button" aria-pressed="false" class="bg-slate-800 text-xs px-3 py-2 rounded-md" title="鎖定人物取景與遮罩位置">鎖定遮罩</button>
         <span class="text-xs text-slate-400">放大後拖曳人物調整位置，原始影片不變</span>
       </div>
 
@@ -265,7 +271,7 @@
         <!-- Scrubber Slider -->
         <div class="flex items-center gap-3">
           <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
-          <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          <input type="range" id="scrubber" min="0" max="0" value="0" step="1" class="slider w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer" aria-label="影片逐格時間軸">
           <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
         </div>
 
@@ -384,6 +390,7 @@
     const frameZoomInput = document.getElementById('frameZoom');
     const frameZoomValue = document.getElementById('frameZoomValue');
     const btnResetFraming = document.getElementById('btnResetFraming');
+    const btnLockFraming = document.getElementById('btnLockFraming');
     const annotationCanvas = document.getElementById('annotationCanvas');
     const annotationCtx = annotationCanvas.getContext('2d');
     let annotationTool = null;
@@ -485,6 +492,7 @@
     let framePanX = 0;
     let framePanY = 0;
     let frameDrag = null;
+    let framingLocked = false;
     function clampFramePan() {
       const bound = (frameZoom - 1) / 2;
       framePanX = Math.max(-bound, Math.min(bound, framePanX));
@@ -507,8 +515,19 @@
       applyFraming();
     });
     btnResetFraming.addEventListener('click', resetFraming);
+    btnLockFraming.addEventListener('click', () => {
+      framingLocked = !framingLocked;
+      btnLockFraming.setAttribute('aria-pressed', String(framingLocked));
+      btnLockFraming.textContent = framingLocked ? '已鎖定遮罩' : '鎖定遮罩';
+      btnLockFraming.classList.toggle('bg-blue-600', framingLocked);
+      btnLockFraming.classList.toggle('text-white', framingLocked);
+      frameZoomInput.disabled = framingLocked;
+      btnResetFraming.disabled = framingLocked;
+      canvas.classList.toggle('frame-pan-active', frameZoom > 1 && !framingLocked);
+      statusText.textContent = framingLocked ? '人物取景已鎖定' : '人物取景可調整';
+    });
     canvas.addEventListener('pointerdown', event => {
-      if (frameZoom <= 1 || annotationTool || isExporting) return;
+      if (framingLocked || frameZoom <= 1 || annotationTool || isExporting) return;
       frameDrag = { id:event.pointerId, x:event.clientX, y:event.clientY, px:framePanX, py:framePanY };
       canvas.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -708,7 +727,7 @@
       timeDisplay.textContent = formatTime(curTime);
       if (video.duration) {
         if (!isScrubbing && pendingSeekTime === null) {
-          scrubber.value = (curTime / video.duration) * 100;
+          scrubber.value = String(Math.round(curTime * fps));
         }
       }
     }
@@ -816,7 +835,7 @@
         video.srcObject.getTracks().forEach(track => track.stop());
         video.srcObject = null;
       }
-      floatingPlayback.classList.remove('hidden');
+      revealPlaybackControls();
       resetFraming();
       video.src = src;
       video.load();
@@ -824,7 +843,11 @@
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         durationDisplay.textContent = formatTime(video.duration);
-        totalFramesText.textContent = Math.round(video.duration * fps);
+        const totalFrames = Math.max(0, Math.round(video.duration * fps));
+        totalFramesText.textContent = totalFrames;
+        scrubber.max = String(totalFrames);
+        scrubber.step = '1';
+        scrubber.value = '0';
         statusText.textContent = `解析度: ${video.videoWidth}x${video.videoHeight}`;
         video.currentTime = 0;
         setTimeout(() => {
@@ -861,7 +884,7 @@
       timeDisplay.textContent = formatTime(desiredTime);
       currentTimeText.textContent = desiredTime.toFixed(2) + 's';
       currentFrameText.textContent = Math.round(desiredTime * fps);
-      scrubber.value = String((desiredTime / video.duration) * 100);
+      scrubber.value = String(Math.round(desiredTime * fps));
     }
 
     function stepFrame(frameDelta) {
@@ -1029,7 +1052,7 @@
     scrubber.addEventListener('change', () => { isScrubbing = false; });
     scrubber.addEventListener('input', () => {
       if (Number.isFinite(video.duration) && video.duration > 0) {
-        seekToTime(Number(scrubber.value) / 100 * video.duration);
+        seekToTime(Number(scrubber.value) / fps);
       }
     });
 
