@@ -49,7 +49,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.5</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.6.6</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -239,9 +239,9 @@
         <!-- Display Toggles -->
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
-          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>播放優先（停格才辨識）</span><input type="checkbox" id="playbackPriority" checked></label>
+          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>播放優先（播放時不顯示骨架）</span><input type="checkbox" id="playbackPriority"></label>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>AI 動作辨識</span><input type="checkbox" id="toggleAI" checked></label>
-          <p class="text-[10px] text-slate-400">預設播放時不執行 AI，暫停後分析。取消「播放優先」可即時辨識，但較耗效能。</p>
+          <p class="text-[10px] text-slate-400">預設播放時持續辨識並顯示骨架（約每秒 10 次，可能影響流暢度）。勾選「播放優先」可關閉播放中的辨識。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
             <span>顯示身體骨架與中心參考線</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
@@ -513,7 +513,7 @@
     function onPoseResults(results) {
       if (isPlaying && document.getElementById('playbackPriority').checked) { currentPoseLandmarks = null; return; }
       currentPoseLandmarks = document.getElementById('toggleAI').checked ? results.poseLandmarks || null : null;
-      if (!isPlaying) renderCurrentFrame();
+      if (video.videoWidth && video.videoHeight) renderCurrentFrame();
     }
 
     // Visual 2D reference markers, NOT an anatomical spine or physical center of mass.
