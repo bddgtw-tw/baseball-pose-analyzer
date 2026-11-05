@@ -32,7 +32,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球動作檢視器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.0</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.4.1</span>
           </h1>
           <p class="text-xs text-slate-400">BASEBALL MOTION / 影片・逐格・動作觀察</p>
         </div>
@@ -212,6 +212,8 @@
         <!-- Display Toggles -->
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
+          <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer"><span>AI 動作辨識</span><input type="checkbox" id="toggleAI" checked></label>
+          <p class="text-[10px] text-slate-400">播放不順時可關閉 AI，繼續慢放與逐格。AI 更新最高每秒 10 次。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
             <span>顯示身體骨架與中心參考線</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
@@ -455,7 +457,7 @@
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
       });
       pose.setOptions({
-        modelComplexity: 1,
+        modelComplexity: 0,
         smoothLandmarks: true,
         enableSegmentation: false,
         minDetectionConfidence: 0.5,
@@ -481,8 +483,8 @@
 
     // MediaPipe Pose Results Handler
     function onPoseResults(results) {
-      currentPoseLandmarks = results.poseLandmarks || null;
-      renderCurrentFrame();
+      currentPoseLandmarks = document.getElementById('toggleAI').checked ? results.poseLandmarks || null : null;
+      if (!isPlaying) renderCurrentFrame();
     }
 
     // Visual 2D reference markers, NOT an anatomical spine or physical center of mass.
@@ -697,12 +699,27 @@
       ctx.restore();
     }
 
+    const poseInputCanvas = document.createElement('canvas');
+    const poseInputContext = poseInputCanvas.getContext('2d', { alpha:false });
+    let lastPoseStartedAt = -Infinity;
+    let lastPaintedVideoTime = -1;
     // Trigger AI analysis on current video frame
     async function processCurrentVideoFrame() {
-      if (!pose || isProcessingPose || !video.videoWidth) return;
+      if (!pose || isProcessingPose || !video.videoWidth || video.readyState < 2 || !document.getElementById('toggleAI').checked) return;
+      const now = performance.now();
+      if (isPlaying && now - lastPoseStartedAt < 100) return;
+      lastPoseStartedAt = now;
       isProcessingPose = true;
       try {
-        await pose.send({ image: video });
+        // Preserve aspect ratio while keeping inference independent of 1080p/4K source size.
+        const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+        const width = Math.max(1, Math.round(video.videoWidth * scale));
+        const height = Math.max(1, Math.round(video.videoHeight * scale));
+        if (poseInputCanvas.width !== width || poseInputCanvas.height !== height) {
+          poseInputCanvas.width = width; poseInputCanvas.height = height;
+        }
+        poseInputContext.drawImage(video, 0, 0, width, height);
+        await pose.send({ image: poseInputCanvas });
       } catch (err) {
         console.warn("Pose evaluation error:", err);
         pose = null; currentPoseLandmarks = null;
@@ -714,17 +731,27 @@
 
     // Playback loop
     function startPlaybackLoop() {
-      if (isPlaying) {
-        // Draw the live source immediately. Camera frames must not wait for
-        // MediaPipe to return before the user sees an image.
-        renderCurrentFrame();
-        processCurrentVideoFrame();
-        animationFrameId = requestAnimationFrame(startPlaybackLoop);
-      }
+      // A new play event replaces the existing loop instead of multiplying it.
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+      const tick = () => {
+        animationFrameId = null;
+        if (!isPlaying) return;
+        if (video.currentTime !== lastPaintedVideoTime) {
+          lastPaintedVideoTime = video.currentTime;
+          renderCurrentFrame();
+          processCurrentVideoFrame();
+        }
+        animationFrameId = requestAnimationFrame(tick);
+      };
+      lastPaintedVideoTime = -1;
+      tick();
     }
 
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
+      pauseVideo();
+      currentPoseLandmarks = null;
+      lastPaintedVideoTime = -1;
       dropPrompt.style.display = 'none';
       statusText.textContent = "載入影片中...";
 
@@ -1011,6 +1038,16 @@
     });
     video.addEventListener('ratechange', restorePlaybackSpeed);
 
+    document.getElementById('toggleAI').addEventListener('change', event => {
+      currentPoseLandmarks = null;
+      if (event.target.checked) processCurrentVideoFrame();
+      else {
+        [rightElbowAngleText, leftElbowAngleText, leadKneeAngleText, trunkTiltAngleText].forEach(el => el.textContent = '--°');
+        [rightElbowBar, leftElbowBar, leadKneeBar, trunkTiltBar].forEach(el => el.style.width = '0%');
+      }
+      statusText.textContent = event.target.checked ? 'AI 辨識已開啟' : 'AI 已關閉 · 影片檢視模式';
+      renderCurrentFrame();
+    });
     // Toggle checkboxes
     toggleSkeleton.addEventListener('change', renderCurrentFrame);
     angleDisplayOptions.forEach(input => input.addEventListener('change', renderCurrentFrame));
