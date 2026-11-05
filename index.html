@@ -116,22 +116,27 @@
        the portrait source inside a wide letterboxed stage. */
     @media (max-width:900px) and (orientation:landscape) {
       body { min-height:100svh; }
-      header { position:sticky; top:0; padding:6px 12px!important; }
+      header { position:sticky; top:0; padding:4px 10px!important; }
       header .max-w-7xl { gap:0!important; }
       header p, header .max-w-7xl > div:last-child { display:none!important; }
-      header h1 { font-size:.95rem!important; white-space:nowrap; }
-      header .w-10 { width:28px!important; height:28px!important; min-width:28px!important; }
+      header h1 { font-size:.86rem!important; white-space:nowrap; }
+      header .w-10 { width:26px!important; height:26px!important; min-width:26px!important; }
       header .w-10::after { font-size:1rem!important; }
-      main { padding:8px 12px 24px!important; gap:8px!important; }
+      main { padding:4px 8px 8px!important; gap:6px!important; }
+      main > .lg\:col-span-3 { gap:6px!important; min-width:0; }
       .mobile-source-actions { display:flex; gap:6px; }
-      .mobile-source-actions > * { min-height:34px; padding:6px 10px; font-size:11px; }
+      .mobile-source-actions > * { min-height:30px; padding:4px 9px; font-size:11px; }
       .stage-track { margin-bottom:8px; }
       .bg-black { border-radius:12px!important; }
-      .video-landscape { width:100%; max-height:calc(100svh - 126px); aspect-ratio:16 / 9!important; }
-      .video-portrait { width:auto; height:min(calc(100svh - 126px), 70vw); max-width:100%; max-height:calc(100svh - 126px); aspect-ratio:9 / 16!important; margin-inline:auto; }
-      .floating-playback { padding:4px; gap:0; border-radius:10px; }
-      .floating-playback-row { gap:3px; }
-      .floating-playback-row button { min-height:32px; padding:6px 9px; font-size:11px; }
+      #videoStage { width:min(100%, calc(clamp(150px, calc(100svh - 185px), 220px) * 16 / 9)); height:clamp(150px, calc(100svh - 185px), 220px); aspect-ratio:16 / 9!important; margin-inline:auto; flex:0 0 auto; }
+      #videoStage.video-portrait { width:auto; height:clamp(150px, calc(100svh - 185px), 220px); aspect-ratio:9 / 16!important; }
+      .floating-playback { padding:3px; gap:0; border-radius:10px; order:3; }
+      .floating-playback-row { gap:3px; width:100%; }
+      .floating-playback-row button { min-height:44px; padding:8px 10px; font-size:12px; }
+      #videoDeck { order:4; margin-top:0; padding:4px!important; }
+      #videoDeck > div { min-height:42px; }
+      #videoFraming { order:5; margin-top:0; }
+      #imageTools { order:6; margin-top:0; }
       .bg-slate-900.border.border-slate-800.rounded-xl.p-3 { margin-top:0; }
       .insight-card, .result-card, .bg-slate-900\/60 { display:none!important; }
     }
@@ -159,7 +164,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.6</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.7</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -192,7 +197,7 @@
         <button type="button" id="btnDemoMobile" class="mobile-source-secondary">示範</button>
       </div>
       <!-- Video Screen Container -->
-      <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
+      <div id="videoStage" class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 aspect-video flex items-center justify-center shadow-2xl group">
         <!-- Hidden video element -->
         <video id="videoEl" playsinline crossorigin="anonymous" class="hidden"></video>
         <!-- Overlay Canvas for Drawing Video + Pose Skeleton -->
@@ -233,7 +238,7 @@
       </div>
 
       <!-- Reframing controls: crop only the display, not the original source. -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片取景">
+      <div id="videoFraming" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片取景">
         <span class="text-xs font-semibold text-slate-200">人物取景</span>
         <label for="frameZoom" class="text-xs text-slate-300">縮放 <span id="frameZoomValue">1.0×</span></label>
         <input id="frameZoom" class="flex-1 min-w-24 max-w-52 accent-lime-300" type="range" min="1" max="3" step="0.1" value="1" aria-label="影片縮放倍率">
@@ -242,7 +247,7 @@
       </div>
 
       <!-- Unified image tools directly beneath video -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
+      <div id="imageTools" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2" aria-label="影片畫面工具">
         <span class="text-xs font-medium text-slate-300 mr-1">畫面工具</span>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="line">畫線</button>
         <button class="annotation-tool bg-slate-800 text-xs px-3 py-2 rounded-md" data-tool="circle">圈選</button>
@@ -255,7 +260,7 @@
       </div>
 
       <!-- Video Control Deck -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
+      <div id="videoDeck" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
         <!-- Scrubber Slider -->
         <div class="flex items-center gap-3">
           <span id="timeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
