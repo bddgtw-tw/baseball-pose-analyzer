@@ -148,7 +148,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.1</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.2.2</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
@@ -159,7 +159,6 @@
         <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md flex items-center gap-1.5">
           <span>選 iPhone 膠卷</span>
         </label>
-        <button id="btnGooglePhotos" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-700">Google 相簿</button>
         <input type="file" id="cameraInput" accept="video/*" capture="environment" class="hidden">
         <input type="file" id="libraryInput" accept="video/*" class="hidden">
         <input type="file" id="videoInput" accept="video/*" class="hidden">
@@ -195,7 +194,6 @@
           <div class="flex flex-wrap justify-center gap-2">
             <label for="cameraInput" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">拍攝影片</label>
             <label for="libraryInput" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-3 rounded-lg">選擇影片</label>
-            <button id="btnGooglePhotosEmpty" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-3 rounded-lg">Google 相簿</button>
           </div>
         </div>
 
@@ -403,8 +401,6 @@
     const videoInput = document.getElementById('videoInput');
     const cameraInput = document.getElementById('cameraInput');
     const libraryInput = document.getElementById('libraryInput');
-    const btnGooglePhotos = document.getElementById('btnGooglePhotos');
-    const btnGooglePhotosEmpty = document.getElementById('btnGooglePhotosEmpty');
     const dropPrompt = document.getElementById('dropPrompt');
     const scrubber = document.getElementById('scrubber');
     const timeDisplay = document.getElementById('timeDisplay');
@@ -1006,15 +1002,6 @@
     libraryInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) loadVideoSource(e.target.files[0]);
     });
-    function openGooglePhotos() {
-      // Let iOS/Android open its native media picker. Google Photos can appear
-      // there as a provider when it is installed, without a separate OAuth flow.
-      libraryInput.click();
-      statusText.textContent = '請在手機影片選取器中選擇 Google 相簿影片';
-    }
-    btnGooglePhotos?.addEventListener('click', openGooglePhotos);
-    btnGooglePhotosEmpty?.addEventListener('click', (event) => { event.stopPropagation(); openGooglePhotos(); });
-
     // Event Listeners
     videoInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) {
