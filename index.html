@@ -150,7 +150,7 @@
     }
     /* Wider landscape screens: make the video the left canvas and collect every
        analysis control into one calm right-hand rail. */
-    @media (min-width:901px) and (orientation:landscape) {
+    @media (min-width:701px) and (orientation:landscape) {
       main > .lg\:col-span-3.landscape-controls-ready { display:grid!important; grid-template-columns:minmax(0,1fr) 280px; grid-template-areas:"stage controls"; gap:16px!important; min-width:0; align-items:start; }
       main > .lg\:col-span-3:not(.landscape-controls-ready) #controlPanel { display:none; }
       #videoStage { grid-area:stage; width:min(100%, calc((100svh - 150px) * 16 / 9)); height:auto; min-height:0; max-height:none; aspect-ratio:16 / 9!important; margin:0; justify-self:start; }
@@ -192,7 +192,7 @@
           <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             棒球 AI 姿態逐幀分析器
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">MediaPipe 引擎</span>
-            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.3.0</span>
+            <span id="appVersion" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border border-lime-400/40 text-lime-300 bg-lime-300/10" title="版本編號；後續功能修改依序更新">v0.3.1</span>
           </h1>
           <p class="text-xs text-slate-400">零雲端上傳・純本地瀏覽器加速・33點骨架追蹤・毫秒級逐幀微調</p>
         </div>
