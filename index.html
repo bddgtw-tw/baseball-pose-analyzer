@@ -19,7 +19,7 @@
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div></div></section>
 <section class="metrics" aria-label="關節角度"><div class="metric"><small>左肘夾角</small><strong id="le">—</strong></div><div class="metric"><small>右肘夾角</small><strong id="re">—</strong></div><div class="metric"><small>左膝夾角</small><strong id="lk">—</strong></div><div class="metric"><small>右膝夾角</small><strong id="rk">—</strong></div></section>
-<p class="note">橘線是身體中軸；黃色圓點與虛線是依可見部位估計的 2D 重心參考，不代表實際 3D 重心。影格以影片畫面估算，未估出前暫用 30 fps。</p>
+<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考，虛線投向雙腳落點構成的畫面支撐線；這不是實際地面平面或 3D 重心。影格以影片畫面估算，未估出前暫用 30 fps。</p>
 <div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
 </main></div>
 <script>
@@ -48,7 +48,16 @@
     if(shoulders&&hips){ctx.strokeStyle='#ffbe75';ctx.lineWidth=Math.max(3,canvas.width/320);ctx.beginPath();ctx.moveTo(shoulders.x,shoulders.y);ctx.lineTo(hips.x,hips.y);ctx.stroke()}
     var components=[[head,.08],[midpoint(shoulders,hips),.50],[midpoint(p(11),p(15))||midpoint(p(11),p(13)),.05],[midpoint(p(12),p(16))||midpoint(p(12),p(14)),.05],[midpoint(p(23),p(27))||midpoint(p(23),p(25)),.16],[midpoint(p(24),p(28))||midpoint(p(24),p(26)),.16]];
     var sum=0,cx=0,cy=0;components.forEach(function(item){if(!item[0])return;sum+=item[1];cx+=item[0].x*item[1];cy+=item[0].y*item[1]});
-    if(sum>=.65){cx/=sum;cy/=sum;ctx.strokeStyle='#e6f273';ctx.fillStyle='#e6f273';ctx.lineWidth=Math.max(2,canvas.width/450);ctx.setLineDash([10,7]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,canvas.height);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,Math.max(6,canvas.width/170),0,Math.PI*2);ctx.fill()}
+    if(sum>=.65){cx/=sum;cy/=sum;
+      function foot(heel,toe,ankle,knee){var h=p(heel),t=p(toe),a=p(ankle),k=p(knee);return midpoint(h,t)||h||t||(a?{x:a.x,y:a.y+Math.max(7,k?Math.abs(a.y-k.y)*.12:10)}:null)}
+      var left=foot(29,31,27,25),right=foot(30,32,28,26);
+      ctx.strokeStyle='#e6f273';ctx.fillStyle='#e6f273';ctx.lineWidth=Math.max(2,canvas.width/450);
+      if(left&&right){var ground=Math.abs(right.x-left.x)>8?left.y+(cx-left.x)*(right.y-left.y)/(right.x-left.x):(left.y+right.y)/2;
+        ground=Math.max(Math.min(left.y,right.y)-20,Math.min(Math.max(left.y,right.y)+20,ground));
+        ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(left.x,left.y);ctx.lineTo(right.x,right.y);ctx.stroke();ctx.globalAlpha=1;
+        if(ground>cy){ctx.setLineDash([10,7]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,ground);ctx.stroke();ctx.setLineDash([])}
+      }
+      ctx.beginPath();ctx.arc(cx,cy,Math.max(6,canvas.width/170),0,Math.PI*2);ctx.fill()}
     ctx.restore();
     joints.forEach(function(j,n){var v=angle(p(j[0]),p(j[1]),p(j[2]));document.getElementById(metricIds[n]).textContent=v===null?'—':v+'°'});
   }
