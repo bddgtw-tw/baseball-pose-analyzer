@@ -19,7 +19,7 @@
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div></div></section>
 <section class="metrics" aria-label="關節角度"><div class="metric"><small>左肘夾角</small><strong id="le">—</strong></div><div class="metric"><small>右肘夾角</small><strong id="re">—</strong></div><div class="metric"><small>左膝夾角</small><strong id="lk">—</strong></div><div class="metric"><small>右膝夾角</small><strong id="rk">—</strong></div></section>
-<p class="note">黃線為肩膀至骨盆的 2D 中軸，黃點為骨盆位置參考。單一鏡頭無法量出真正的 3D 重心。影格以影片畫面估算，未估出前暫用 30 fps。</p>
+<p class="note">橘線是身體中軸；黃色圓點與虛線是依可見部位估計的 2D 重心參考，不代表實際 3D 重心。影格以影片畫面估算，未估出前暫用 30 fps。</p>
 <div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
 </main></div>
 <script>
@@ -34,14 +34,23 @@
   function point(lm,i){var p=lm&&lm[i];return p&&p.visibility>=.5?{x:p.x*canvas.width,y:p.y*canvas.height}:null}
   function angle(a,b,c){if(!a||!b||!c)return null;var x=a.x-b.x,y=a.y-b.y,u=c.x-b.x,v=c.y-b.y,l=Math.hypot(x,y)*Math.hypot(u,v);return l>1?Math.round(Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/l)))*180/Math.PI):null}
   function clear(){ctx.clearRect(0,0,canvas.width,canvas.height);landmarks=null;metricIds.forEach(function(id){document.getElementById(id).textContent='—'})}
+  function midpoint(a,b){return a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null}
   function render(lm){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     if(!lm){metricIds.forEach(function(id){document.getElementById(id).textContent='—'});return}
-    if(window.drawConnectors&&window.POSE_CONNECTIONS)drawConnectors(ctx,lm,POSE_CONNECTIONS,{color:'#a5dec8',lineWidth:Math.max(2,canvas.width/450),visibilityMin:.5});
-    if(window.drawLandmarks)drawLandmarks(ctx,lm,{color:'#efffea',fillColor:'#a5dec8',radius:Math.max(3,canvas.width/260),visibilityMin:.5});
-    joints.forEach(function(j,n){var v=angle(point(lm,j[0]),point(lm,j[1]),point(lm,j[2]));document.getElementById(metricIds[n]).textContent=v===null?'—':v+'°'});
-    var a=point(lm,11),b=point(lm,12),c=point(lm,23),d=point(lm,24);
-    if(a&&b&&c&&d){var sx=(a.x+b.x)/2,sy=(a.y+b.y)/2,hx=(c.x+d.x)/2,hy=(c.y+d.y)/2;ctx.save();ctx.strokeStyle='#e6f273';ctx.fillStyle='#e6f273';ctx.lineWidth=Math.max(3,canvas.width/300);ctx.setLineDash([10,7]);ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(hx,hy);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(hx,hy,Math.max(6,canvas.width/160),0,Math.PI*2);ctx.fill();ctx.restore()}
+    var p=function(i){return point(lm,i)},head=midpoint(p(7),p(8))||p(0);
+    var shoulders=midpoint(p(11),p(12)),hips=midpoint(p(23),p(24));
+    var segments=[[p(11),p(13)],[p(13),p(15)],[p(12),p(14)],[p(14),p(16)],[p(23),p(25)],[p(25),p(27)],[p(24),p(26)],[p(26),p(28)],[p(11),p(12)],[p(23),p(24)],[p(11),p(23)],[p(12),p(24)],[head,shoulders]];
+    ctx.save();
+    ctx.strokeStyle='#a5dec8';ctx.lineWidth=Math.max(2,canvas.width/450);
+    segments.forEach(function(pair){if(!pair[0]||!pair[1])return;ctx.beginPath();ctx.moveTo(pair[0].x,pair[0].y);ctx.lineTo(pair[1].x,pair[1].y);ctx.stroke()});
+    [head,shoulders,hips,p(11),p(12),p(13),p(14),p(15),p(16),p(23),p(24),p(25),p(26),p(27),p(28)].forEach(function(q){if(!q)return;ctx.fillStyle='#efffea';ctx.beginPath();ctx.arc(q.x,q.y,Math.max(3,canvas.width/270),0,Math.PI*2);ctx.fill()});
+    if(shoulders&&hips){ctx.strokeStyle='#ffbe75';ctx.lineWidth=Math.max(3,canvas.width/320);ctx.beginPath();ctx.moveTo(shoulders.x,shoulders.y);ctx.lineTo(hips.x,hips.y);ctx.stroke()}
+    var components=[[head,.08],[midpoint(shoulders,hips),.50],[midpoint(p(11),p(15))||midpoint(p(11),p(13)),.05],[midpoint(p(12),p(16))||midpoint(p(12),p(14)),.05],[midpoint(p(23),p(27))||midpoint(p(23),p(25)),.16],[midpoint(p(24),p(28))||midpoint(p(24),p(26)),.16]];
+    var sum=0,cx=0,cy=0;components.forEach(function(item){if(!item[0])return;sum+=item[1];cx+=item[0].x*item[1];cy+=item[0].y*item[1]});
+    if(sum>=.65){cx/=sum;cy/=sum;ctx.strokeStyle='#e6f273';ctx.fillStyle='#e6f273';ctx.lineWidth=Math.max(2,canvas.width/450);ctx.setLineDash([10,7]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,canvas.height);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,Math.max(6,canvas.width/170),0,Math.PI*2);ctx.fill()}
+    ctx.restore();
+    joints.forEach(function(j,n){var v=angle(p(j[0]),p(j[1]),p(j[2]));document.getElementById(metricIds[n]).textContent=v===null?'—':v+'°'});
   }
   try{pose=new Pose({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/'+f}});pose.setOptions({modelComplexity:0,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.5,minTrackingConfidence:.5});pose.onResults(function(result){landmarks=result.poseLandmarks||null;render(landmarks);setStatus(landmarks?'骨架辨識中':'未辨識到完整球員；請讓全身入鏡')})}catch(e){setStatus('姿態模型未載入，請重新整理')}
   async function infer(force){if(!pose||!video.videoWidth||busy)return;var now=performance.now();if(!force&&now-lastInfer<60)return;lastInfer=now;busy=true;var id=source;try{var scale=Math.min(1,640/Math.max(video.videoWidth,video.videoHeight)),w=Math.round(video.videoWidth*scale),h=Math.round(video.videoHeight*scale);if(input.width!==w||input.height!==h){input.width=w;input.height=h}ictx.drawImage(video,0,0,w,h);await pose.send({image:input});if(id!==source)clear()}catch(e){clear();setStatus('姿態辨識失敗：'+String(e.message||e).slice(0,65))}finally{busy=false}}
