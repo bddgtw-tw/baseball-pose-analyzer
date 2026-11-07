@@ -66,8 +66,8 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 <section class="stage"><div id="screen" class="screen"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><strong>選一段球員影片開始</strong>讓全身入鏡，盡量固定拍攝角度。</div><div id="status" class="badge">等待影片</div></div>
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div></div></section>
-<section class="metrics" aria-label="肩髖分離進度"><div class="metric separation"><small>肩髖分離進度 <span id="sepstate"></span></small><strong id="sep">—</strong></div></section>
-<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。百分比是影片取樣的肩髖畫面分離程度相對值，不代表力量或 3D 扭轉；遮擋時可能無法判定。影格以影片畫面估算，未估出前暫用 30 fps。</p>
+<section class="metrics" aria-label="肩髖分離程度"><div class="metric separation"><small>肩髖分離程度 <span id="sepstate"></span></small><strong id="sep">—</strong></div></section>
+<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。肩髖百分比以本片取樣的最小與最大分離量換算，僅代表片段內的相對程度，不是動作成功率；側面與遮擋時可能無法判定。影格以影片畫面估算，未估出前暫用 30 fps。</p>
 <div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
 </main></div>
 <script>
@@ -154,7 +154,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
       if(version!==scanVersion)return;
       values.sort(function(a,b){return a-b});
       if(values.length>=Math.ceil(count*.55)){var low=values[Math.floor(values.length*.1)],high=values[Math.floor(values.length*.9)];if(high-low>=5)sepRange={min:low,max:high}}
-      st.textContent=sepRange?'・片段相對值':'・無法判定';render(landmarks);
+      st.textContent=sepRange?'・片段內相對值':'・無法判定';render(landmarks);
     }catch(e){if(version===scanVersion)st.textContent='・無法判定'}
     finally{v.pause();v.removeAttribute('src');v.load();if(model&&model.close)model.close()}
   }
