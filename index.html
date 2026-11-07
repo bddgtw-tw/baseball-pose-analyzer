@@ -79,7 +79,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   var metricIds=['le','re','lk','rk'],joints=[[11,13,15],[12,14,16],[23,25,27],[24,26,28]];
   function time(t){if(!isFinite(t))t=0;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+String(Math.floor(t*100)%100).padStart(2,'0')}
   function setStatus(t){status.textContent=t}
-  function point(lm,i){var p=lm&&lm[i];return p&&p.visibility>=.5?{x:p.x*canvas.width,y:p.y*canvas.height}:null}
+  function point(lm,i){var p=lm&&lm[i];return p&&p.visibility>=((i>=29&&i<=32)?.35:.5)?{x:p.x*canvas.width,y:p.y*canvas.height}:null}
   function angle(a,b,c){if(!a||!b||!c)return null;var x=a.x-b.x,y=a.y-b.y,u=c.x-b.x,v=c.y-b.y,l=Math.hypot(x,y)*Math.hypot(u,v);return l>1?Math.round(Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/l)))*180/Math.PI):null}
   function clear(){ctx.clearRect(0,0,canvas.width,canvas.height);landmarks=null;metricIds.forEach(function(id){document.getElementById(id).textContent='—'})}
   function midpoint(a,b){return a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null}
@@ -88,11 +88,11 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
     if(!lm){metricIds.forEach(function(id){document.getElementById(id).textContent='—'});return}
     var p=function(i){return point(lm,i)},head=midpoint(p(7),p(8))||p(0);
     var shoulders=midpoint(p(11),p(12)),hips=midpoint(p(23),p(24));
-    var segments=[[p(11),p(13)],[p(13),p(15)],[p(12),p(14)],[p(14),p(16)],[p(23),p(25)],[p(25),p(27)],[p(24),p(26)],[p(26),p(28)],[p(11),p(12)],[p(23),p(24)],[p(11),p(23)],[p(12),p(24)],[head,shoulders]];
+    var segments=[[p(11),p(13)],[p(13),p(15)],[p(12),p(14)],[p(14),p(16)],[p(23),p(25)],[p(25),p(27)],[p(24),p(26)],[p(26),p(28)],[p(27),p(29)],[p(29),p(31)],[p(27),p(31)],[p(28),p(30)],[p(30),p(32)],[p(28),p(32)],[p(11),p(12)],[p(23),p(24)],[p(11),p(23)],[p(12),p(24)],[head,shoulders]];
     ctx.save();
     ctx.strokeStyle='#a5dec8';ctx.lineWidth=Math.max(2,canvas.width/450);
     segments.forEach(function(pair){if(!pair[0]||!pair[1])return;ctx.beginPath();ctx.moveTo(pair[0].x,pair[0].y);ctx.lineTo(pair[1].x,pair[1].y);ctx.stroke()});
-    [head,shoulders,hips,p(11),p(12),p(13),p(14),p(15),p(16),p(23),p(24),p(25),p(26),p(27),p(28)].forEach(function(q){if(!q)return;ctx.fillStyle='#efffea';ctx.beginPath();ctx.arc(q.x,q.y,Math.max(3,canvas.width/270),0,Math.PI*2);ctx.fill()});
+    [head,shoulders,hips,p(11),p(12),p(13),p(14),p(15),p(16),p(23),p(24),p(25),p(26),p(27),p(28),p(29),p(30),p(31),p(32)].forEach(function(q){if(!q)return;ctx.fillStyle='#efffea';ctx.beginPath();ctx.arc(q.x,q.y,Math.max(3,canvas.width/270),0,Math.PI*2);ctx.fill()});
     if(shoulders&&hips){ctx.strokeStyle='#ffbe75';ctx.lineWidth=Math.max(3,canvas.width/320);ctx.beginPath();ctx.moveTo(shoulders.x,shoulders.y);ctx.lineTo(hips.x,hips.y);ctx.stroke()}
     var components=[[head,.08],[midpoint(shoulders,hips),.50],[midpoint(p(11),p(15))||midpoint(p(11),p(13)),.05],[midpoint(p(12),p(16))||midpoint(p(12),p(14)),.05],[midpoint(p(23),p(27))||midpoint(p(23),p(25)),.16],[midpoint(p(24),p(28))||midpoint(p(24),p(26)),.16]];
     var sum=0,cx=0,cy=0;components.forEach(function(item){if(!item[0])return;sum+=item[1];cx+=item[0].x*item[1];cy+=item[0].y*item[1]});
