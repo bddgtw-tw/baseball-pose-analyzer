@@ -66,8 +66,8 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 <section class="stage"><div id="screen" class="screen"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><strong>選一段球員影片開始</strong>讓全身入鏡，盡量固定拍攝角度。</div><div id="status" class="badge">等待影片</div></div>
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div></div></section>
-<section class="metrics" aria-label="關節角度"><div class="metric"><small>左肘夾角</small><strong id="le">—</strong></div><div class="metric"><small>右肘夾角</small><strong id="re">—</strong></div><div class="metric"><small>左膝夾角</small><strong id="lk">—</strong></div><div class="metric"><small>右膝夾角</small><strong id="rk">—</strong></div><div class="metric separation"><small>畫面肩髖分離角</small><strong id="sep">—</strong></div></section>
-<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。肩髖分離角僅量測畫面上的肩線與髖線，不代表 3D 扭轉或力量；側面與遮擋時可能無法判定。影格以影片畫面估算，未估出前暫用 30 fps。</p>
+<section class="metrics" aria-label="關節角度"><div class="metric"><small>左肘夾角</small><strong id="le">—</strong></div><div class="metric"><small>右肘夾角</small><strong id="re">—</strong></div><div class="metric"><small>左膝夾角</small><strong id="lk">—</strong></div><div class="metric"><small>右膝夾角</small><strong id="rk">—</strong></div><div class="metric separation"><small>肩髖分離進度 <span id="sepstate"></span></small><strong id="sep">—</strong></div></section>
+<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。百分比是影片取樣的肩髖畫面分離程度相對值，不代表力量或 3D 扭轉；遮擋時可能無法判定。影格以影片畫面估算，未估出前暫用 30 fps。</p>
 <div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
 </main></div>
 <script>
@@ -75,11 +75,12 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   var video=document.getElementById('video'),screen=document.getElementById('screen'),canvas=document.getElementById('overlay'),ctx=canvas.getContext('2d');
   var input=document.createElement('canvas'),ictx=input.getContext('2d',{alpha:false});
   var status=document.getElementById('status'),seek=document.getElementById('seek'),play=document.getElementById('play');
-  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,lastMediaTime=null,samples=[],exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false;
+  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,lastMediaTime=null,samples=[],exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false,sepRange=null,scanVersion=0;
   var metricIds=['le','re','lk','rk','sep'],joints=[[11,13,15],[12,14,16],[23,25,27],[24,26,28]];
   function time(t){if(!isFinite(t))t=0;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+String(Math.floor(t*100)%100).padStart(2,'0')}
   function setStatus(t){status.textContent=t}
   function point(lm,i){var p=lm&&lm[i];return p&&p.visibility>=((i>=29&&i<=32)?.35:.5)?{x:p.x*canvas.width,y:p.y*canvas.height}:null}
+  function separation(lm){var q=[11,12,23,24].map(function(i){return lm&&lm[i]});if(q.some(function(p){return !p||p.visibility<.65}))return null;var a=q[0],b=q[1],c=q[2],d=q[3],x=b.x-a.x,y=b.y-a.y,u=d.x-c.x,v=d.y-c.y,sw=Math.hypot(x,y),hw=Math.hypot(u,v),torso=Math.hypot((a.x+b.x-c.x-d.x)/2,(a.y+b.y-c.y-d.y)/2);if(!torso||sw<torso*.25||hw<torso*.25)return null;var deg=Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/(sw*hw))))*180/Math.PI;return Math.min(deg,180-deg)}
   function angle(a,b,c){if(!a||!b||!c)return null;var x=a.x-b.x,y=a.y-b.y,u=c.x-b.x,v=c.y-b.y,l=Math.hypot(x,y)*Math.hypot(u,v);return l>1?Math.round(Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/l)))*180/Math.PI):null}
   function clear(){ctx.clearRect(0,0,canvas.width,canvas.height);landmarks=null;metricIds.forEach(function(id){document.getElementById(id).textContent='—'})}
   function midpoint(a,b){return a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null}
@@ -108,19 +109,53 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
       }
       ctx.beginPath();ctx.arc(cx,cy,Math.max(6,canvas.width/170),0,Math.PI*2);ctx.fill()}
     ctx.restore();
+    var sep=separation(lm),pct=sep!==null&&sepRange?Math.round(Math.max(0,Math.min(100,100*(sep-sepRange.min)/(sepRange.max-sepRange.min)))):null;
+    document.getElementById('sep').textContent=pct===null?'—':pct+'%';
+    var tone=pct===null?'#a5dec8':pct<35?'#a5dec8':pct<70?'#f1d480':'#f9a36b';
+    document.querySelector('.metric.separation').style.borderColor=tone;
+    if(p(11)&&p(12)&&p(23)&&p(24)){ctx.save();ctx.strokeStyle=tone;ctx.lineWidth=Math.max(4,canvas.width/260);[[p(11),p(12)],[p(23),p(24)]].forEach(function(pair){ctx.beginPath();ctx.moveTo(pair[0].x,pair[0].y);ctx.lineTo(pair[1].x,pair[1].y);ctx.stroke()});ctx.restore()}
     joints.forEach(function(j,n){var v=angle(p(j[0]),p(j[1]),p(j[2]));document.getElementById(metricIds[n]).textContent=v===null?'—':v+'°'});
+  }
+  async function scanSeparation(){
+    var version=++scanVersion,st=document.getElementById('sepstate'),v=document.createElement('video'),model=null;
+    st.textContent='・取樣中';sepRange=null;v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+    try{
+      await new Promise(function(ok,fail){v.onloadedmetadata=ok;v.onerror=fail;v.load()});
+      if(version!==scanVersion)return;
+      model=new Pose({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/'+f}});
+      model.setOptions({modelComplexity:0,smoothLandmarks:false,enableSegmentation:false,minDetectionConfidence:.5,minTrackingConfidence:.5});
+      var c=document.createElement('canvas'),g=c.getContext('2d',{alpha:false}),s=Math.min(1,480/Math.max(v.videoWidth,v.videoHeight));c.width=Math.max(1,Math.round(v.videoWidth*s));c.height=Math.max(1,Math.round(v.videoHeight*s));
+      var values=[],count=Math.min(20,Math.max(8,Math.ceil(v.duration*2)));
+      for(var i=0;i<count;i++){
+        if(version!==scanVersion)return;
+        await new Promise(function(ok){setTimeout(ok,0)});
+        if(!video.paused)await new Promise(function(ok){video.addEventListener('pause',ok,{once:true})});
+        if(version!==scanVersion)return;
+        v.currentTime=Math.min(Math.max(.01,v.duration-.02),.01+Math.max(0,v.duration-.03)*i/(count-1));
+        await new Promise(function(ok,fail){v.onseeked=ok;v.onerror=fail});
+        if(version!==scanVersion)return;
+        g.drawImage(v,0,0,c.width,c.height);
+        var result=await new Promise(function(ok,fail){model.onResults(ok);model.send({image:c}).catch(fail)});
+        var value=separation(result.poseLandmarks);if(value!==null)values.push(value);
+      }
+      if(version!==scanVersion)return;
+      values.sort(function(a,b){return a-b});
+      if(values.length>=Math.ceil(count*.55)){var low=values[Math.floor(values.length*.1)],high=values[Math.floor(values.length*.9)];if(high-low>=5)sepRange={min:low,max:high}}
+      st.textContent=sepRange?'・片段相對值':'・無法判定';render(landmarks);
+    }catch(e){if(version===scanVersion)st.textContent='・無法判定'}
+    finally{v.pause();v.removeAttribute('src');v.load();if(model&&model.close)model.close()}
   }
   try{pose=new Pose({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/'+f}});pose.setOptions({modelComplexity:0,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.5,minTrackingConfidence:.5});pose.onResults(function(result){landmarks=result.poseLandmarks||null;render(landmarks);setStatus(landmarks?'骨架辨識中':'未辨識到完整球員；請讓全身入鏡')})}catch(e){setStatus('姿態模型未載入，請重新整理')}
   async function infer(force){if(!pose||!video.videoWidth||busy)return;var now=performance.now();if(!force&&now-lastInfer<60)return;lastInfer=now;busy=true;var id=source;try{var scale=Math.min(1,640/Math.max(video.videoWidth,video.videoHeight)),w=Math.round(video.videoWidth*scale),h=Math.round(video.videoHeight*scale);if(input.width!==w||input.height!==h){input.width=w;input.height=h}ictx.drawImage(video,0,0,w,h);await pose.send({image:input});if(id!==source)clear()}catch(e){clear();setStatus('姿態辨識失敗：'+String(e.message||e).slice(0,65))}finally{busy=false}}
   function tick(){if(!playing)return;infer(false);if(exporting)drawExport();raf=requestAnimationFrame(tick)}
   function pause(){video.pause();playing=false;cancelAnimationFrame(raf);play.textContent='播放'}
   function updateTime(){document.getElementById('time').textContent=time(video.currentTime);if(isFinite(video.duration)&&video.duration>0)seek.value=Math.round(1000*video.currentTime/video.duration)}
-  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;clear();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
+  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;scanVersion++;sepRange=null;document.getElementById("sepstate").textContent="";clear();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
   function step(n){if(!video.duration)return;pause();video.currentTime=Math.max(0,Math.min(video.duration-.001,video.currentTime+n/fps))}
   document.getElementById('choose').onclick=function(){document.getElementById('file').click()};
   document.getElementById('shoot').onclick=function(){document.getElementById('camera').click()};
   ['file','camera'].forEach(function(id){var el=document.getElementById(id);el.onchange=function(){if(el.files[0])load(el.files[0]);el.value=''}});
-  video.onloadedmetadata=function(){var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,1600/Math.max(w,h));canvas.width=Math.round(w*s);canvas.height=Math.round(h*s);screen.style.aspectRatio=w+' / '+h;document.getElementById('duration').textContent=time(video.duration);document.getElementById('image').disabled=false;document.getElementById('export').disabled=!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);fps=30;samples=[];lastMediaTime=null;setStatus('影片已載入，開始辨識');infer(true)};
+  video.onloadedmetadata=function(){var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,1600/Math.max(w,h));canvas.width=Math.round(w*s);canvas.height=Math.round(h*s);screen.style.aspectRatio=w+' / '+h;document.getElementById('duration').textContent=time(video.duration);document.getElementById('image').disabled=false;document.getElementById('export').disabled=!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);fps=30;samples=[];lastMediaTime=null;setStatus('影片已載入，開始辨識');infer(true);scanSeparation()};
   if(video.requestVideoFrameCallback){var observe=function(now,meta){if(meta.mediaTime!==undefined){var delta=meta.mediaTime-lastMediaTime;if(lastMediaTime!==null&&delta>.004&&delta<.2){samples.push(1/delta);if(samples.length>9)samples.shift();if(samples.length>=5){var a=samples.slice().sort(function(x,y){return x-y});fps=Math.max(10,Math.min(240,Math.round(a[Math.floor(a.length/2)])))}}lastMediaTime=meta.mediaTime}video.requestVideoFrameCallback(observe)};video.requestVideoFrameCallback(observe)}
   video.onloadeddata=function(){infer(true)};
   video.onseeked=function(){updateTime();infer(true)};
