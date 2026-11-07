@@ -307,8 +307,9 @@
         <!-- Display Toggles -->
         <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
           <span class="text-xs font-semibold text-slate-300">分析畫面設定</span>
+          <p class="text-[10px] text-slate-400">黃線為肩膀中心至骨盆中心的 2D 中軸；圓點是骨盆位置參考，不是物理重心。</p>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
-            <span>顯示彩色關節點點</span>
+            <span>顯示骨架、中軸線與骨盆中心</span>
             <input type="checkbox" id="toggleSkeleton" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
           </label>
           <label class="flex items-center justify-between text-xs text-slate-400 cursor-pointer">
@@ -564,6 +565,35 @@
       renderCurrentFrame();
     }
 
+    function drawBodyAxis(lm) {
+      const ls = pointInCanvas(lm, 11), rs = pointInCanvas(lm, 12);
+      const lh = pointInCanvas(lm, 23), rh = pointInCanvas(lm, 24);
+      if (!ls || !rs || !lh || !rh) return;
+      const shoulders = { x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 };
+      const pelvis = { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 };
+      const scale = Math.max(1, canvas.width / 800);
+      ctx.save();
+      ctx.strokeStyle = '#d8ff45';
+      ctx.lineWidth = 3 * scale;
+      ctx.setLineDash([9 * scale, 6 * scale]);
+      ctx.beginPath();
+      ctx.moveTo(shoulders.x, shoulders.y);
+      ctx.lineTo(pelvis.x, pelvis.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#d8ff45';
+      ctx.beginPath();
+      ctx.arc(pelvis.x, pelvis.y, 7 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#07100f';
+      ctx.lineWidth = 2 * scale;
+      ctx.stroke();
+      ctx.fillStyle = '#d8ff45';
+      ctx.font = `bold ${Math.max(13, 14 * scale)}px sans-serif`;
+      ctx.fillText('骨盆中心', pelvis.x + 12 * scale, pelvis.y - 10 * scale);
+      ctx.restore();
+    }
+
     function renderCurrentFrame() {
       if (!video.videoWidth || !video.videoHeight) return;
       resizePoseCanvas();
@@ -586,6 +616,7 @@
             visibilityMin: 0.5
           });
         }
+        drawBodyAxis(currentPoseLandmarks);
       }
 
       updateBiomechanics(currentPoseLandmarks);
@@ -759,7 +790,10 @@
         await pose.send({ image: video });
       } catch (err) {
         console.warn("Pose evaluation error:", err);
-        statusText.textContent = "姿態辨識暫時失敗；可繼續逐格觀看或重載影片";
+        currentPoseLandmarks = null;
+        lastPoseSampleTime = null;
+        renderCurrentFrame();
+        statusText.textContent = "姿態辨識失敗；請重新載入影片";
       } finally {
         isProcessingPose = false;
         if (forcePoseAfterCurrent) {
@@ -794,6 +828,13 @@
 
     // Load Local Video File
     function loadVideoSource(fileOrUrl) {
+      pauseVideo();
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+      video.removeAttribute('src');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       dropPrompt.style.display = 'none';
       video.dataset.analysisDisabled = 'false';
       clearStageMarkers('新影片已載入，請從準備階段開始標記。');
