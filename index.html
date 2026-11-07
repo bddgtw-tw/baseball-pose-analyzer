@@ -348,6 +348,9 @@
     const ctx = canvas.getContext('2d');
     const POSE_CANVAS_MAX_EDGE = 1600;
     const POSE_INFERENCE_INTERVAL_MS = 50; // At most 20 inferences per second.
+    const inferenceCanvas = document.createElement('canvas');
+    const inferenceCtx = inferenceCanvas.getContext('2d', { alpha: false });
+    const INFERENCE_MAX_EDGE = 640;
     let lastPoseInferenceAt = 0;
     let forcePoseAfterCurrent = false;
     let exportCanvas = null;
@@ -787,13 +790,22 @@
       pendingPoseVideoTime = video.currentTime;
       isProcessingPose = true;
       try {
-        await pose.send({ image: video });
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+        const scale = Math.min(1, INFERENCE_MAX_EDGE / Math.max(video.videoWidth, video.videoHeight));
+        const width = Math.max(1, Math.round(video.videoWidth * scale));
+        const height = Math.max(1, Math.round(video.videoHeight * scale));
+        if (inferenceCanvas.width !== width || inferenceCanvas.height !== height) {
+          inferenceCanvas.width = width;
+          inferenceCanvas.height = height;
+        }
+        inferenceCtx.drawImage(video, 0, 0, width, height);
+        await pose.send({ image: inferenceCanvas });
       } catch (err) {
         console.warn("Pose evaluation error:", err);
         currentPoseLandmarks = null;
         lastPoseSampleTime = null;
         renderCurrentFrame();
-        statusText.textContent = "姿態辨識失敗；請重新載入影片";
+        statusText.textContent = `姿態辨識失敗：${String(err?.message || err).slice(0, 72)}`;
       } finally {
         isProcessingPose = false;
         if (forcePoseAfterCurrent) {
