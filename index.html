@@ -174,10 +174,27 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
     var shoulders=midpoint(p(11),p(12)),hips=midpoint(p(23),p(24));
     var segments=[[p(11),p(13)],[p(13),p(15)],[p(12),p(14)],[p(14),p(16)],[p(23),p(25)],[p(25),p(27)],[p(24),p(26)],[p(26),p(28)],[p(27),p(29)],[p(29),p(31)],[p(27),p(31)],[p(28),p(30)],[p(30),p(32)],[p(28),p(32)],[p(11),p(12)],[p(23),p(24)],[p(11),p(23)],[p(12),p(24)],[head,shoulders]];
     ctx.save();
-    ctx.strokeStyle='#a5dec8';ctx.lineWidth=Math.max(2,canvas.width/450);
-    segments.forEach(function(pair){if(!pair[0]||!pair[1])return;ctx.beginPath();ctx.moveTo(pair[0].x,pair[0].y);ctx.lineTo(pair[1].x,pair[1].y);ctx.stroke()});
-    [head,shoulders,hips,p(11),p(12),p(13),p(14),p(15),p(16),p(23),p(24),p(25),p(26),p(27),p(28),p(29),p(30),p(31),p(32)].forEach(function(q){if(!q)return;ctx.fillStyle='#efffea';ctx.beginPath();ctx.arc(q.x,q.y,Math.max(3,canvas.width/270),0,Math.PI*2);ctx.fill()});
-    if(shoulders&&hips){ctx.strokeStyle='#ffbe75';ctx.lineWidth=Math.max(3,canvas.width/320);ctx.beginPath();ctx.moveTo(shoulders.x,shoulders.y);ctx.lineTo(hips.x,hips.y);ctx.stroke()}
+    // Dark halo prevents light video backgrounds from swallowing pose lines.
+    var boneWidth=Math.max(5,Math.min(12,canvas.width/165));
+    ctx.lineCap='round';ctx.lineJoin='round';
+    function drawBone(a,b,color,width){
+      if(!a||!b)return;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+      ctx.strokeStyle='rgba(0,12,13,.96)';ctx.lineWidth=width+Math.max(4,width*.85);ctx.stroke();
+      ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
+    }
+    segments.forEach(function(pair){drawBone(pair[0],pair[1],'#4dffdc',boneWidth)});
+    if(shoulders&&hips)drawBone(shoulders,hips,'#ffb454',boneWidth*1.08);
+    var jointRadius=Math.max(6,Math.min(12,canvas.width/140));
+    [head,shoulders,hips,p(11),p(12),p(13),p(14),p(15),p(16),p(23),p(24),p(25),p(26),p(27),p(28),p(29),p(30),p(31),p(32)].forEach(function(q){
+      if(!q)return;
+      ctx.beginPath();ctx.arc(q.x,q.y,jointRadius+2.5,0,Math.PI*2);
+      ctx.fillStyle='#061415';ctx.fill();
+      ctx.beginPath();ctx.arc(q.x,q.y,jointRadius,0,Math.PI*2);
+      ctx.fillStyle='#f9ec58';ctx.fill();
+      ctx.beginPath();ctx.arc(q.x,q.y,Math.max(2,jointRadius*.32),0,Math.PI*2);
+      ctx.fillStyle='#fffef0';ctx.fill();
+    });
     var components=[[head,.08],[midpoint(shoulders,hips),.50],[midpoint(p(11),p(15))||midpoint(p(11),p(13)),.05],[midpoint(p(12),p(16))||midpoint(p(12),p(14)),.05],[midpoint(p(23),p(27))||midpoint(p(23),p(25)),.16],[midpoint(p(24),p(28))||midpoint(p(24),p(26)),.16]];
     var sum=0,cx=0,cy=0;components.forEach(function(item){if(!item[0])return;sum+=item[1];cx+=item[0].x*item[1];cy+=item[0].y*item[1]});
     if(sum>=.65){cx/=sum;cy/=sum;
