@@ -145,7 +145,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   var video=document.getElementById('video'),screen=document.getElementById('screen'),canvas=document.getElementById('overlay'),ctx=canvas.getContext('2d');
   var input=document.createElement('canvas'),ictx=input.getContext('2d',{alpha:false});
   var status=document.getElementById('status'),seek=document.getElementById('seek'),play=document.getElementById('play'),frameFps=document.getElementById('frame-fps'),frameInfo=document.getElementById('frame-info');
-  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,desiredStepTime=null,pendingInfer=false,exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false,preparedFile=null;
+  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,desiredStepTime=null,pendingInfer=false,exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false,preparedFile=null,exportSnapshot=null;
   var joints=[[11,13,15],[12,14,16],[23,25,27],[24,26,28]];
   function time(t){if(!isFinite(t))t=0;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+String(Math.floor(t*100)%100).padStart(2,'0')}
   function setStatus(t){status.textContent=t}
@@ -254,16 +254,20 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   seek.oninput=function(){if(!video.duration)return;pause();desiredStepTime=null;clear();video.currentTime=video.duration*Number(seek.value)/1000};
   document.getElementById('speed').onchange=function(e){video.playbackRate=Number(e.target.value)};
   function composite(target,context){target.width=canvas.width;target.height=canvas.height;context.drawImage(video,0,0,target.width,target.height);context.drawImage(canvas,0,0,target.width,target.height)}
-  function directDownload(file){var a=document.createElement('a'),u=URL.createObjectURL(file);a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},30000)}
+  function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
+  async function shareFile(file){if(navigator.canShare&&navigator.share&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:file.name});setStatus('分享選單已關閉，原影片保留在畫面中');return true}catch(e){if(e.name==='AbortError')return true}}return false}
+  function directDownload(file){
+    // iOS Safari may navigate to a blob URL instead of saving, destroying the loaded video state.
+    if(isIOS()){setStatus('iPhone 請使用「選擇儲存位置／分享」來儲存，避免影片頁面被取代');return}
+    var a=document.createElement('a'),u=URL.createObjectURL(file);a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},30000)
+  }
   function prepareSave(blob,name){preparedFile=new File([blob],name,{type:blob.type||'application/octet-stream'});document.getElementById('save-title').textContent='已製作：'+name+'（'+(blob.size/1024/1024).toFixed(1)+' MB）';document.getElementById('save-panel').classList.remove('hidden');setStatus('檔案已準備好，請選擇儲存位置或直接下載')}
-  document.getElementById('save-download').onclick=function(){if(preparedFile)directDownload(preparedFile)};
+  document.getElementById('save-download').onclick=async function(){if(!preparedFile)return;if(isIOS()){if(!await shareFile(preparedFile))setStatus('此瀏覽器不支援安全分享，請使用 Safari 的分享功能');return}directDownload(preparedFile)};
   document.getElementById('save-choose').onclick=async function(){
     if(!preparedFile)return;var file=preparedFile;
-    // Native iOS/Android sharing is the most reliable location chooser.
-    if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
-      try{await navigator.share({files:[file],title:file.name});setStatus('分享選單已關閉');return}
-      catch(e){if(e.name==='AbortError')return}
-    }
+    // Share a File without leaving the current browser document on iOS.
+    if(await shareFile(file))return;
+    if(isIOS()){setStatus('iPhone 無法開啟分享選單；已取消下載以保護目前影片');return}
     if(window.showSaveFilePicker){
       try{var handle=await window.showSaveFilePicker({suggestedName:file.name,types:[{description:'分析檔案',accept:{[file.type||'application/octet-stream']:['.'+file.name.split('.').pop()]}}]});var writable=await handle.createWritable();await writable.write(file);await writable.close();setStatus('檔案已儲存');return}
       catch(e){if(e.name==='AbortError')return}
@@ -272,8 +276,60 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   };
   document.getElementById('image').onclick=function(){if(!video.videoWidth)return;var out=document.createElement('canvas'),c=out.getContext('2d');composite(out,c);out.toBlob(function(blob){if(blob)prepareSave(blob,'baseball-frame.png')},'image/png')};
   function drawExport(){if(!exporting)return;exportCtx.drawImage(video,0,0,exportCanvas.width,exportCanvas.height);exportCtx.drawImage(canvas,0,0,exportCanvas.width,exportCanvas.height)}
-  function finishExport(){if(!exporting)return;exporting=false;pause();if(recorder&&recorder.state!=='inactive')recorder.stop()}
-  document.getElementById('export').onclick=async function(){if(!video.duration||exporting)return;var types=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];var mime=types.find(function(t){return MediaRecorder.isTypeSupported(t)});if(!mime){setStatus('此瀏覽器不支援影片匯出');return}exportCanvas=document.createElement('canvas');exportCanvas.width=canvas.width;exportCanvas.height=canvas.height;exportCtx=exportCanvas.getContext('2d');var chunks=[];oldTime=video.currentTime;oldLoop=video.loop;pause();video.loop=false;recorder=new MediaRecorder(exportCanvas.captureStream(30),{mimeType:mime});recorder.ondataavailable=function(e){if(e.data.size)chunks.push(e.data)};recorder.onstop=function(){prepareSave(new Blob(chunks,{type:mime}),'baseball-skeleton.'+(mime.includes('mp4')?'mp4':'webm'));video.loop=oldLoop;video.currentTime=oldTime;document.getElementById('export').disabled=false;setStatus('影片已製作完成，請選擇儲存方式')};document.getElementById('export').disabled=true;video.currentTime=0;await new Promise(function(resolve){video.addEventListener('seeked',resolve,{once:true})});exporting=true;drawExport();recorder.start();video.play().catch(function(e){finishExport();setStatus('匯出失敗：'+e.message)});setStatus('正在合成影片，請保持頁面開啟')};
+  function restoreExportView(){
+    if(!exportSnapshot)return;
+    var state=exportSnapshot;exportSnapshot=null;
+    video.loop=state.loop;video.playbackRate=state.rate;desiredStepTime=null;
+    // Restore before re-rendering the overlay, even if recording ended early.
+    video.currentTime=Math.min(Math.max(0,state.time),Math.max(0,video.duration-.001));
+    updateTime();infer(true);
+    document.getElementById('export').disabled=false;
+    if(state.playing){video.play().catch(function(){pause()})}else pause();
+  }
+  function finishExport(){
+    if(!exporting)return;
+    exporting=false;pause();
+    if(recorder&&recorder.state!=='inactive')recorder.stop();
+    else restoreExportView();
+  }
+  document.getElementById('export').onclick=async function(){
+    if(!video.duration||exporting)return;
+    if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){setStatus('此瀏覽器不支援影片合成');return}
+    var types=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];
+    var mime=types.find(function(t){return MediaRecorder.isTypeSupported(t)});
+    if(!mime){setStatus('此瀏覽器不支援影片匯出');return}
+    exportSnapshot={time:video.currentTime,loop:video.loop,rate:video.playbackRate,playing:!video.paused};
+    exportCanvas=document.createElement('canvas');
+    exportCanvas.width=canvas.width;exportCanvas.height=canvas.height;
+    exportCtx=exportCanvas.getContext('2d');
+    var chunks=[];
+    pause();video.loop=false;video.playbackRate=1;
+    try{
+      recorder=new MediaRecorder(exportCanvas.captureStream(30),{mimeType:mime});
+      recorder.ondataavailable=function(e){if(e.data.size)chunks.push(e.data)};
+      recorder.onerror=function(){setStatus('影片合成中斷，已恢復原影片');finishExport()};
+      recorder.onstop=function(){
+        restoreExportView();
+        if(chunks.length){prepareSave(new Blob(chunks,{type:mime}),'baseball-skeleton.'+(mime.includes('mp4')?'mp4':'webm'))}
+        else setStatus('影片匯出失敗，原影片已保留');
+      };
+      document.getElementById('export').disabled=true;
+      video.currentTime=0;
+      await new Promise(function(resolve,reject){
+        var timeout=setTimeout(function(){video.removeEventListener('seeked',ready);resolve()},3000);
+        function ready(){clearTimeout(timeout);resolve()}
+        video.addEventListener('seeked',ready,{once:true});
+      });
+      exporting=true;drawExport();recorder.start();
+      await video.play();
+      setStatus('正在合成影片；完成後自動回到原播放位置');
+    }catch(e){
+      exporting=false;
+      if(recorder&&recorder.state!=='inactive')try{recorder.stop()}catch(err){}
+      restoreExportView();
+      setStatus('匯出失敗，已恢復原影片：'+String(e.message||e).slice(0,55));
+    }
+  };
   window.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='ArrowLeft')step(-1);if(e.key==='ArrowRight')step(1);if(e.code==='Space'){e.preventDefault();play.click()}});
 })();
 </script></body></html>
