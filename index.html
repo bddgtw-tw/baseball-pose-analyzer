@@ -47,6 +47,10 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 .row select{min-height:48px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer}
 #play{min-width:96px}
 .note{margin:0;color:var(--muted);font-size:12px;line-height:1.65}
+.frame-settings{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:13px;color:var(--muted);font-size:13px}
+.frame-settings label{display:flex;align-items:center;gap:8px}
+.frame-settings select{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:40px;font:inherit}
+.frame-settings output{font:12px ui-monospace,SFMono-Regular,monospace;color:var(--accent)}
 .download{display:flex;gap:10px;margin-top:22px}
 .download button{flex:1;min-height:52px}
 .download button:first-child{border-color:#86a996;color:var(--accent)}
@@ -61,22 +65,23 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 <main>
 <section class="stage"><div id="screen" class="screen"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><strong>選一段球員影片開始</strong>讓全身入鏡，盡量固定拍攝角度。</div><div id="status" class="badge">等待影片</div></div>
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
-<div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div></div></section>
-<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。影格以影片畫面估算，未估出前暫用 30 fps。</p>
+<div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div><div class="frame-settings"><label for="frame-fps">逐格影格率 <select id="frame-fps"><option value="24">24 FPS</option><option value="25">25 FPS</option><option value="30" selected>30 FPS（預設）</option><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="240">240 FPS</option></select></label><output id="frame-info" aria-live="polite">設定 30 FPS｜格 0｜0.000 秒</output></div></div></section>
+<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。逐格控制依上方選擇的 FPS，每次前進 1/FPS 秒；預設 30 FPS，不會因播放掉格而自動改變。請依影片原始影格率手動選擇（慢動作匯出影片可能已轉換影格率）。瀏覽器依時間定位，並非保證精確的解碼逐格。</p>
 <div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
 </main></div>
 <script>
 (function(){
   var video=document.getElementById('video'),screen=document.getElementById('screen'),canvas=document.getElementById('overlay'),ctx=canvas.getContext('2d');
   var input=document.createElement('canvas'),ictx=input.getContext('2d',{alpha:false});
-  var status=document.getElementById('status'),seek=document.getElementById('seek'),play=document.getElementById('play');
-  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,lastMediaTime=null,samples=[],exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false;
+  var status=document.getElementById('status'),seek=document.getElementById('seek'),play=document.getElementById('play'),frameFps=document.getElementById('frame-fps'),frameInfo=document.getElementById('frame-info');
+  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,desiredStepTime=null,pendingInfer=false,exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false;
   var joints=[[11,13,15],[12,14,16],[23,25,27],[24,26,28]];
   function time(t){if(!isFinite(t))t=0;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+String(Math.floor(t*100)%100).padStart(2,'0')}
   function setStatus(t){status.textContent=t}
   function point(lm,i){var p=lm&&lm[i];return p&&p.visibility>=((i>=29&&i<=32)?.35:.5)?{x:p.x*canvas.width,y:p.y*canvas.height}:null}
   function angle(a,b,c){if(!a||!b||!c)return null;var x=a.x-b.x,y=a.y-b.y,u=c.x-b.x,v=c.y-b.y,l=Math.hypot(x,y)*Math.hypot(u,v);return l>1?Math.round(Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/l)))*180/Math.PI):null}
   function clear(){ctx.clearRect(0,0,canvas.width,canvas.height);landmarks=null}
+  function updateFrameInfo(){var t=desiredStepTime===null?video.currentTime:desiredStepTime;frameInfo.textContent="設定 "+fps+" FPS｜格 "+Math.max(0,Math.round(t*fps))+"｜"+t.toFixed(3)+" 秒"}
   function midpoint(a,b){return a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null}
   function drawJointAngle(label,at,value,center){
     if(value===null||!at)return;
@@ -119,26 +124,31 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
     joints.forEach(function(j,n){var v=angle(p(j[0]),p(j[1]),p(j[2]));drawJointAngle(['左肘','右肘','左膝','右膝'][n],p(j[1]),v,n<2?shoulders:hips)});
   }
   try{pose=new Pose({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/'+f}});pose.setOptions({modelComplexity:0,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.5,minTrackingConfidence:.5});pose.onResults(function(result){landmarks=result.poseLandmarks||null;render(landmarks);setStatus(landmarks?'骨架辨識中':'未辨識到完整球員；請讓全身入鏡')})}catch(e){setStatus('姿態模型未載入，請重新整理')}
-  async function infer(force){if(!pose||!video.videoWidth||busy)return;var now=performance.now();if(!force&&now-lastInfer<60)return;lastInfer=now;busy=true;var id=source;try{var scale=Math.min(1,640/Math.max(video.videoWidth,video.videoHeight)),w=Math.round(video.videoWidth*scale),h=Math.round(video.videoHeight*scale);if(input.width!==w||input.height!==h){input.width=w;input.height=h}ictx.drawImage(video,0,0,w,h);await pose.send({image:input});if(id!==source)clear()}catch(e){clear();setStatus('姿態辨識失敗：'+String(e.message||e).slice(0,65))}finally{busy=false}}
+  async function infer(force){if(!pose||!video.videoWidth)return;if(busy){if(force)pendingInfer=true;return;}var now=performance.now();if(!force&&now-lastInfer<60)return;lastInfer=now;busy=true;var id=source;try{var scale=Math.min(1,640/Math.max(video.videoWidth,video.videoHeight)),w=Math.round(video.videoWidth*scale),h=Math.round(video.videoHeight*scale);if(input.width!==w||input.height!==h){input.width=w;input.height=h}ictx.drawImage(video,0,0,w,h);await pose.send({image:input});if(id!==source)clear()}catch(e){clear();setStatus('姿態辨識失敗：'+String(e.message||e).slice(0,65))}finally{busy=false;if(pendingInfer){pendingInfer=false;infer(true)}}}
   function tick(){if(!playing)return;infer(false);if(exporting)drawExport();raf=requestAnimationFrame(tick)}
   function pause(){video.pause();playing=false;cancelAnimationFrame(raf);play.textContent='播放'}
-  function updateTime(){document.getElementById('time').textContent=time(video.currentTime);if(isFinite(video.duration)&&video.duration>0)seek.value=Math.round(1000*video.currentTime/video.duration)}
-  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;clear();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
-  function step(n){if(!video.duration)return;pause();video.currentTime=Math.max(0,Math.min(video.duration-.001,video.currentTime+n/fps))}
+  function updateTime(){document.getElementById('time').textContent=time(video.currentTime);if(isFinite(video.duration)&&video.duration>0)seek.value=Math.round(1000*video.currentTime/video.duration);updateFrameInfo()}
+  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;desiredStepTime=null;pendingInfer=false;clear();updateFrameInfo();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
+  function step(n){if(!video.duration)return;pause();
+    // Keep an independent target so fast repeated taps never inherit an unfinished seek.
+    var base=desiredStepTime===null?Math.round(video.currentTime*fps)/fps:desiredStepTime;
+    desiredStepTime=Math.max(0,Math.min(Math.max(0,video.duration-1/fps),base+n/fps));
+    clear();video.currentTime=desiredStepTime;updateTime();
+  }
+  frameFps.onchange=function(){fps=Number(frameFps.value);desiredStepTime=null;updateFrameInfo()};
   document.getElementById('choose').onclick=function(){document.getElementById('file').click()};
   document.getElementById('shoot').onclick=function(){document.getElementById('camera').click()};
   ['file','camera'].forEach(function(id){var el=document.getElementById(id);el.onchange=function(){if(el.files[0])load(el.files[0]);el.value=''}});
-  video.onloadedmetadata=function(){var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,1600/Math.max(w,h));canvas.width=Math.round(w*s);canvas.height=Math.round(h*s);screen.style.aspectRatio=w+' / '+h;document.getElementById('duration').textContent=time(video.duration);document.getElementById('image').disabled=false;document.getElementById('export').disabled=!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);fps=30;samples=[];lastMediaTime=null;setStatus('影片已載入，開始辨識');infer(true)};
-  if(video.requestVideoFrameCallback){var observe=function(now,meta){if(meta.mediaTime!==undefined){var delta=meta.mediaTime-lastMediaTime;if(lastMediaTime!==null&&delta>.004&&delta<.2){samples.push(1/delta);if(samples.length>9)samples.shift();if(samples.length>=5){var a=samples.slice().sort(function(x,y){return x-y});fps=Math.max(10,Math.min(240,Math.round(a[Math.floor(a.length/2)])))}}lastMediaTime=meta.mediaTime}video.requestVideoFrameCallback(observe)};video.requestVideoFrameCallback(observe)}
+  video.onloadedmetadata=function(){var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,1600/Math.max(w,h));canvas.width=Math.round(w*s);canvas.height=Math.round(h*s);screen.style.aspectRatio=w+' / '+h;document.getElementById('duration').textContent=time(video.duration);document.getElementById('image').disabled=false;document.getElementById('export').disabled=!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);fps=Number(frameFps.value);desiredStepTime=null;updateFrameInfo();setStatus('影片已載入，開始辨識');infer(true)};
   video.onloadeddata=function(){infer(true)};
   video.onseeked=function(){updateTime();infer(true)};
   video.ontimeupdate=updateTime;
-  video.onplay=function(){playing=true;play.textContent='暫停';cancelAnimationFrame(raf);tick()};
+  video.onplay=function(){desiredStepTime=null;playing=true;play.textContent='暫停';cancelAnimationFrame(raf);tick()};
   video.onpause=function(){playing=false;play.textContent='播放';cancelAnimationFrame(raf)};
   video.onended=function(){if(exporting){finishExport();return}if(document.getElementById('loop').checked){video.currentTime=0;video.play()}else pause()};
   play.onclick=function(){if(!video.src){setStatus('請先選擇或拍攝影片');return}if(video.paused)video.play().catch(function(e){setStatus('無法播放：'+e.message)});else pause()};
   [['back1',-1],['back5',-5],['next1',1],['next5',5]].forEach(function(p){document.getElementById(p[0]).onclick=function(){step(p[1])}});
-  seek.oninput=function(){if(!video.duration)return;pause();video.currentTime=video.duration*Number(seek.value)/1000};
+  seek.oninput=function(){if(!video.duration)return;pause();desiredStepTime=null;clear();video.currentTime=video.duration*Number(seek.value)/1000};
   document.getElementById('speed').onchange=function(e){video.playbackRate=Number(e.target.value)};
   function composite(target,context){target.width=canvas.width;target.height=canvas.height;context.drawImage(video,0,0,target.width,target.height);context.drawImage(canvas,0,0,target.width,target.height)}
   document.getElementById('image').onclick=function(){if(!video.videoWidth)return;var out=document.createElement('canvas'),c=out.getContext('2d');composite(out,c);out.toBlob(function(blob){if(blob)download(blob,'baseball-frame.png')},'image/png')};
