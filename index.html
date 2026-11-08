@@ -32,8 +32,12 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 .screen{position:relative;display:grid;place-items:center;aspect-ratio:16/9;min-height:250px;background:#050908}
 .screen video,.screen canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .screen canvas{pointer-events:none}
+.video-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .empty{position:absolute;z-index:2;text-align:center;max-width:380px;padding:24px;color:var(--muted);font-size:14px}
-.empty:before{content:"◌";display:block;color:var(--accent);font-size:58px;line-height:1;margin-bottom:14px}
+.empty p{margin:12px 0 0}
+.empty .video-select{min-height:56px;min-width:170px;background:var(--accent);color:var(--ink);font-size:17px}
+.change-video{position:absolute;z-index:4;top:14px;right:14px;min-height:36px;padding:5px 12px;background:#172321e8;border:1px solid #526e5c88;font-size:12px;backdrop-filter:blur(8px)}
+.empty:before{content:none}
 .empty strong{display:block;margin-bottom:8px;color:var(--text);font-size:22px;letter-spacing:-.03em}
 .badge{position:absolute;z-index:3;top:14px;left:14px;max-width:calc(100% - 28px);padding:7px 11px;border:1px solid #526e5c88;border-radius:8px;background:#101b19e8;color:#d9e8df;font-size:12px;line-height:1.35;backdrop-filter:blur(10px)}
 .badge:before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--accent)}
@@ -66,13 +70,13 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 @media (orientation:portrait) and (max-width:600px) and (pointer:coarse){
   html,body{height:100%;overflow:hidden}
   .wrap{height:100dvh;max-width:none;min-height:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) max(8px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px,env(safe-area-inset-left))}
-  .top{flex:none;margin:0;padding:7px 5px 9px;gap:7px;align-items:center;flex-direction:row;border-bottom:0}
+  .top{display:none}
   .top>div:first-child:before,.top p{display:none}
   .top h1{font-size:clamp(14px,4vw,19px);letter-spacing:0;white-space:nowrap}
   .sources{width:auto;flex:1;justify-content:flex-end;gap:5px}
   .sources button{flex:0 1 auto;min-width:0;min-height:38px;padding:6px 9px;font-size:12px}
   main{display:flex;flex:1;min-height:0}
-  .stage{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,40%) minmax(0,60%);width:100%;height:100%;min-height:0;box-shadow:none;border-radius:11px}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58%) minmax(0,42%);width:100%;height:100%;min-height:0;box-shadow:none;border-radius:11px}
   .screen{width:100%;height:100%;min-height:0;min-width:0;aspect-ratio:auto!important;overflow:hidden}
   .screen video,.screen canvas{width:100%;height:100%;object-fit:contain}
   .controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:12px 11px 18px;border-top:1px solid var(--line)}
@@ -85,7 +89,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   .save-panel{margin-bottom:8px}
 }
 @media (orientation:portrait) and (max-height:620px) and (max-width:600px) and (pointer:coarse){
-  .stage{grid-template-rows:minmax(0,34%) minmax(0,66%)}
+  .stage{grid-template-rows:minmax(0,51%) minmax(0,49%)}
   .top{padding:3px 5px 5px}
   .sources button{min-height:32px}
 }
@@ -93,16 +97,16 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 @media (orientation:landscape) and (max-height:650px) and (min-width:560px) and (pointer:coarse){
   html,body{height:100%;overflow:hidden}
   .wrap{height:100dvh;max-width:none;min-height:0;padding:env(safe-area-inset-top) max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left));display:flex;flex-direction:column}
-  .top{flex:none;flex-direction:row;align-items:center;justify-content:space-between;margin:0;padding:3px 10px 5px;gap:8px;border-bottom:0}
+  .top{display:none}
   .top>div:first-child:before,.top p{display:none}
   .top h1{font-size:15px;letter-spacing:0;white-space:nowrap}
   .sources{width:auto;gap:6px}
   .sources button{min-height:32px;padding:3px 10px;min-width:0;font-size:12px}
   main{flex:1;min-height:0;display:flex}
-  .stage{display:grid;grid-template-columns:minmax(0,1fr) clamp(278px,37vw,390px);width:100%;height:100%;min-height:0;box-shadow:none;border-radius:8px}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) clamp(245px,32vw,340px);width:100%;height:100%;min-height:0;box-shadow:none;border-radius:8px}
   .screen{width:100%;height:100%;min-height:0;min-width:0;aspect-ratio:auto!important;align-self:stretch;overflow:hidden}
   .screen video,.screen canvas{width:100%;height:100%;object-fit:contain}
-  .badge{top:6px;left:6px;font-size:10px;padding:4px 7px;max-width:calc(100% - 12px)}
+  .badge{top:6px;left:6px;font-size:10px;padding:4px 7px;max-width:calc(100% - 118px)}.change-video{top:6px;right:6px;min-height:32px}
   .controls{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:9px 10px 12px;border-left:1px solid var(--line)}
   .timeline{gap:6px;font-size:11px}
   .timeline input{min-width:0;height:24px}
@@ -127,9 +131,9 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 </style>
 </head>
 <body><div class="wrap">
-<header class="top"><div><h1>棒球動作分析器</h1><p>選影片 → 看骨架與角度 → 逐格回看 → 下載</p></div><div class="sources"><input id="file" type="file" accept="video/*"><input id="camera" type="file" accept="video/*" capture="environment"><button id="choose" class="primary">選擇影片</button><button id="shoot">拍攝影片</button></div></header>
+<header class="top"><div><h1>棒球動作分析器</h1><p>影片檢視與逐格動作分析</p></div></header>
 <main>
-<section class="stage"><div id="screen" class="screen"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><strong>選一段球員影片開始</strong>讓全身入鏡，盡量固定拍攝角度。</div><div id="status" class="badge">等待影片</div></div>
+<section class="stage"><div id="screen" class="screen"><input id="file" class="video-file-input" type="file" accept="video/*"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><button id="choose" class="primary video-select">選擇影片</button><p>讓球員全身入鏡，盡量固定拍攝角度。</p></div><button id="change-video" class="change-video hidden" type="button">更換影片</button><div id="status" class="badge">等待影片</div></div>
 <aside class="controls" aria-label="影片控制台"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div><div class="frame-settings"><label for="frame-fps">逐格影格率 <select id="frame-fps"><option value="24">24 FPS</option><option value="25">25 FPS</option><option value="30" selected>30 FPS（預設）</option><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="240">240 FPS</option></select></label><output id="frame-info" aria-live="polite">設定 30 FPS｜格 0｜0.000 秒</output></div>
 <p class="note">四個逐格按鈕都支援長按連續移動，放開停止。橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。逐格控制依上方選擇的 FPS，每次前進 1/FPS 秒；預設 30 FPS，不會因播放掉格而自動改變。請依影片原始影格率手動選擇（慢動作匯出影片可能已轉換影格率）。瀏覽器依時間定位，並非保證精確的解碼逐格。</p>
@@ -195,7 +199,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   function tick(){if(!playing)return;infer(false);if(exporting)drawExport();raf=requestAnimationFrame(tick)}
   function pause(){video.pause();playing=false;cancelAnimationFrame(raf);play.textContent='播放'}
   function updateTime(){document.getElementById('time').textContent=time(video.currentTime);if(isFinite(video.duration)&&video.duration>0)seek.value=Math.round(1000*video.currentTime/video.duration);updateFrameInfo()}
-  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;desiredStepTime=null;pendingInfer=false;preparedFile=null;document.getElementById("save-panel").classList.add("hidden");clear();updateFrameInfo();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
+  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;desiredStepTime=null;pendingInfer=false;preparedFile=null;document.getElementById("save-panel").classList.add("hidden");clear();updateFrameInfo();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');document.getElementById('change-video').classList.remove('hidden');setStatus('載入影片中…')}
   function step(n){if(!video.duration)return;pause();
     // Keep an independent target so fast repeated taps never inherit an unfinished seek.
     var base=desiredStepTime===null?Math.round(video.currentTime*fps)/fps:desiredStepTime;
@@ -204,8 +208,8 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   }
   frameFps.onchange=function(){fps=Number(frameFps.value);desiredStepTime=null;updateFrameInfo()};
   document.getElementById('choose').onclick=function(){document.getElementById('file').click()};
-  document.getElementById('shoot').onclick=function(){document.getElementById('camera').click()};
-  ['file','camera'].forEach(function(id){var el=document.getElementById(id);el.onchange=function(){if(el.files[0])load(el.files[0]);el.value=''}});
+  document.getElementById('change-video').onclick=function(){document.getElementById('file').click()};
+  document.getElementById('file').onchange=function(){if(this.files[0])load(this.files[0]);this.value=''};
   video.onloadedmetadata=function(){var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,1600/Math.max(w,h));canvas.width=Math.round(w*s);canvas.height=Math.round(h*s);screen.style.aspectRatio=w+' / '+h;document.getElementById('duration').textContent=time(video.duration);document.getElementById('image').disabled=false;document.getElementById('export').disabled=!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);fps=Number(frameFps.value);desiredStepTime=null;updateFrameInfo();setStatus('影片已載入，開始辨識');infer(true)};
   video.onloadeddata=function(){infer(true)};
   video.onseeked=function(){updateTime();infer(true)};
