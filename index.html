@@ -51,6 +51,11 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 .frame-settings label{display:flex;align-items:center;gap:8px}
 .frame-settings select{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:40px;font:inherit}
 .frame-settings output{font:12px ui-monospace,SFMono-Regular,monospace;color:var(--accent)}
+.row button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.save-panel{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.save-panel strong{flex-basis:100%;font-size:14px}
+.save-panel button{flex:1;min-width:130px}
+.save-panel small{flex-basis:100%;color:var(--muted)}
 .download{display:flex;gap:10px;margin-top:22px}
 .download button{flex:1;min-height:52px}
 .download button:first-child{border-color:#86a996;color:var(--accent)}
@@ -66,15 +71,16 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
 <section class="stage"><div id="screen" class="screen"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"></canvas><div id="empty" class="empty"><strong>選一段球員影片開始</strong>讓全身入鏡，盡量固定拍攝角度。</div><div id="status" class="badge">等待影片</div></div>
 <div class="controls"><div class="timeline"><span id="time">00:00.00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="影片時間軸"><span id="duration">00:00.00</span></div>
 <div class="row"><button id="back5">−5 格</button><button id="back1">−1 格</button><button id="play" class="primary">播放</button><button id="next1">+1 格</button><button id="next5">+5 格</button><span class="spacer"></span><label><input id="loop" type="checkbox" checked>循環</label><select id="speed" aria-label="播放速度"><option value="0.1">0.10×</option><option value="0.25">0.25×</option><option value="0.5">0.50×</option><option value="0.75">0.75×</option><option value="1" selected>1.00×</option></select></div><div class="frame-settings"><label for="frame-fps">逐格影格率 <select id="frame-fps"><option value="24">24 FPS</option><option value="25">25 FPS</option><option value="30" selected>30 FPS（預設）</option><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="240">240 FPS</option></select></label><output id="frame-info" aria-live="polite">設定 30 FPS｜格 0｜0.000 秒</output></div></div></section>
-<p class="note">橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。逐格控制依上方選擇的 FPS，每次前進 1/FPS 秒；預設 30 FPS，不會因播放掉格而自動改變。請依影片原始影格率手動選擇（慢動作匯出影片可能已轉換影格率）。瀏覽器依時間定位，並非保證精確的解碼逐格。</p>
-<div class="download"><button id="image" disabled>下載骨架影格圖</button><button id="export" disabled>下載骨架影片</button></div>
+<p class="note">四個逐格按鈕都支援長按連續移動，放開停止。橘線是身體中軸；黃色圓點是 2D 重心參考；虛線末端的小點依可見的腳部落點估算，不是實際地面平面或 3D 重心。逐格控制依上方選擇的 FPS，每次前進 1/FPS 秒；預設 30 FPS，不會因播放掉格而自動改變。請依影片原始影格率手動選擇（慢動作匯出影片可能已轉換影格率）。瀏覽器依時間定位，並非保證精確的解碼逐格。</p>
+<div class="download"><button id="image" disabled>製作骨架影格圖</button><button id="export" disabled>製作骨架影片</button></div>
+<div id="save-panel" class="save-panel hidden" aria-live="polite"><strong id="save-title">檔案已準備完成</strong><button id="save-choose" class="primary">選擇儲存位置／分享</button><button id="save-download">直接下載</button><small>iPhone 請在分享選單點「儲存到檔案」後選擇資料夾；桌面瀏覽器若支援則直接開啟另存為視窗。</small></div>
 </main></div>
 <script>
 (function(){
   var video=document.getElementById('video'),screen=document.getElementById('screen'),canvas=document.getElementById('overlay'),ctx=canvas.getContext('2d');
   var input=document.createElement('canvas'),ictx=input.getContext('2d',{alpha:false});
   var status=document.getElementById('status'),seek=document.getElementById('seek'),play=document.getElementById('play'),frameFps=document.getElementById('frame-fps'),frameInfo=document.getElementById('frame-info');
-  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,desiredStepTime=null,pendingInfer=false,exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false;
+  var url=null,pose=null,busy=false,playing=false,raf=0,lastInfer=0,landmarks=null,source=0,fps=30,desiredStepTime=null,pendingInfer=false,exporting=false,recorder=null,exportCanvas=null,exportCtx=null,oldTime=0,oldLoop=false,preparedFile=null;
   var joints=[[11,13,15],[12,14,16],[23,25,27],[24,26,28]];
   function time(t){if(!isFinite(t))t=0;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+String(Math.floor(t*100)%100).padStart(2,'0')}
   function setStatus(t){status.textContent=t}
@@ -128,7 +134,7 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   function tick(){if(!playing)return;infer(false);if(exporting)drawExport();raf=requestAnimationFrame(tick)}
   function pause(){video.pause();playing=false;cancelAnimationFrame(raf);play.textContent='播放'}
   function updateTime(){document.getElementById('time').textContent=time(video.currentTime);if(isFinite(video.duration)&&video.duration>0)seek.value=Math.round(1000*video.currentTime/video.duration);updateFrameInfo()}
-  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;desiredStepTime=null;pendingInfer=false;clear();updateFrameInfo();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
+  function load(file){if(!file||!file.type.startsWith('video/')){setStatus('請選擇影片檔');return}pause();source++;desiredStepTime=null;pendingInfer=false;preparedFile=null;document.getElementById("save-panel").classList.add("hidden");clear();updateFrameInfo();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);video.src=url;video.load();document.getElementById('empty').classList.add('hidden');setStatus('載入影片中…')}
   function step(n){if(!video.duration)return;pause();
     // Keep an independent target so fast repeated taps never inherit an unfinished seek.
     var base=desiredStepTime===null?Math.round(video.currentTime*fps)/fps:desiredStepTime;
@@ -147,15 +153,45 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none}
   video.onpause=function(){playing=false;play.textContent='播放';cancelAnimationFrame(raf)};
   video.onended=function(){if(exporting){finishExport();return}if(document.getElementById('loop').checked){video.currentTime=0;video.play()}else pause()};
   play.onclick=function(){if(!video.src){setStatus('請先選擇或拍攝影片');return}if(video.paused)video.play().catch(function(e){setStatus('無法播放：'+e.message)});else pause()};
-  [['back1',-1],['back5',-5],['next1',1],['next5',5]].forEach(function(p){document.getElementById(p[0]).onclick=function(){step(p[1])}});
+  var holdTimer=null,repeatTimer=null,holdButton=null;
+  function stopHold(){clearTimeout(holdTimer);clearInterval(repeatTimer);holdTimer=null;repeatTimer=null;if(holdButton){holdButton.removeAttribute('data-holding');holdButton=null}}
+  [['back1',-1],['back5',-5],['next1',1],['next5',5]].forEach(function(p){
+    var btn=document.getElementById(p[0]);btn.addEventListener('contextmenu',function(e){e.preventDefault()});
+    btn.addEventListener('pointerdown',function(e){
+      if(e.button!==0&&e.pointerType==='mouse')return;
+      stopHold();holdButton=btn;btn.setAttribute('data-holding','true');
+      try{btn.setPointerCapture(e.pointerId)}catch(err){}
+      step(p[1]);
+      holdTimer=setTimeout(function(){repeatTimer=setInterval(function(){step(p[1])},130)},380);
+    });
+    ['pointerup','pointercancel','lostpointercapture','pointerleave'].forEach(function(type){btn.addEventListener(type,stopHold)});
+    // Pointer events already execute one step. Ignore the synthesized click.
+    btn.addEventListener('click',function(e){if(e.detail===0)step(p[1])});
+  });
+  window.addEventListener('blur',stopHold);document.addEventListener('visibilitychange',function(){if(document.hidden)stopHold()});
   seek.oninput=function(){if(!video.duration)return;pause();desiredStepTime=null;clear();video.currentTime=video.duration*Number(seek.value)/1000};
   document.getElementById('speed').onchange=function(e){video.playbackRate=Number(e.target.value)};
   function composite(target,context){target.width=canvas.width;target.height=canvas.height;context.drawImage(video,0,0,target.width,target.height);context.drawImage(canvas,0,0,target.width,target.height)}
-  document.getElementById('image').onclick=function(){if(!video.videoWidth)return;var out=document.createElement('canvas'),c=out.getContext('2d');composite(out,c);out.toBlob(function(blob){if(blob)download(blob,'baseball-frame.png')},'image/png')};
-  function download(blob,name){var a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},30000)}
+  function directDownload(file){var a=document.createElement('a'),u=URL.createObjectURL(file);a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},30000)}
+  function prepareSave(blob,name){preparedFile=new File([blob],name,{type:blob.type||'application/octet-stream'});document.getElementById('save-title').textContent='已製作：'+name+'（'+(blob.size/1024/1024).toFixed(1)+' MB）';document.getElementById('save-panel').classList.remove('hidden');setStatus('檔案已準備好，請選擇儲存位置或直接下載')}
+  document.getElementById('save-download').onclick=function(){if(preparedFile)directDownload(preparedFile)};
+  document.getElementById('save-choose').onclick=async function(){
+    if(!preparedFile)return;var file=preparedFile;
+    // Native iOS/Android sharing is the most reliable location chooser.
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+      try{await navigator.share({files:[file],title:file.name});setStatus('分享選單已關閉');return}
+      catch(e){if(e.name==='AbortError')return}
+    }
+    if(window.showSaveFilePicker){
+      try{var handle=await window.showSaveFilePicker({suggestedName:file.name,types:[{description:'分析檔案',accept:{[file.type||'application/octet-stream']:['.'+file.name.split('.').pop()]}}]});var writable=await handle.createWritable();await writable.write(file);await writable.close();setStatus('檔案已儲存');return}
+      catch(e){if(e.name==='AbortError')return}
+    }
+    directDownload(file);setStatus('此瀏覽器無法選擇儲存位置，已改用一般下載');
+  };
+  document.getElementById('image').onclick=function(){if(!video.videoWidth)return;var out=document.createElement('canvas'),c=out.getContext('2d');composite(out,c);out.toBlob(function(blob){if(blob)prepareSave(blob,'baseball-frame.png')},'image/png')};
   function drawExport(){if(!exporting)return;exportCtx.drawImage(video,0,0,exportCanvas.width,exportCanvas.height);exportCtx.drawImage(canvas,0,0,exportCanvas.width,exportCanvas.height)}
   function finishExport(){if(!exporting)return;exporting=false;pause();if(recorder&&recorder.state!=='inactive')recorder.stop()}
-  document.getElementById('export').onclick=async function(){if(!video.duration||exporting)return;var types=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];var mime=types.find(function(t){return MediaRecorder.isTypeSupported(t)});if(!mime){setStatus('此瀏覽器不支援影片匯出');return}exportCanvas=document.createElement('canvas');exportCanvas.width=canvas.width;exportCanvas.height=canvas.height;exportCtx=exportCanvas.getContext('2d');var chunks=[];oldTime=video.currentTime;oldLoop=video.loop;pause();video.loop=false;recorder=new MediaRecorder(exportCanvas.captureStream(30),{mimeType:mime});recorder.ondataavailable=function(e){if(e.data.size)chunks.push(e.data)};recorder.onstop=function(){download(new Blob(chunks,{type:mime}),'baseball-skeleton.'+(mime.includes('mp4')?'mp4':'webm'));video.loop=oldLoop;video.currentTime=oldTime;document.getElementById('export').disabled=false;setStatus('影片已下載')};document.getElementById('export').disabled=true;video.currentTime=0;await new Promise(function(resolve){video.addEventListener('seeked',resolve,{once:true})});exporting=true;drawExport();recorder.start();video.play().catch(function(e){finishExport();setStatus('匯出失敗：'+e.message)});setStatus('正在合成影片，請保持頁面開啟')};
+  document.getElementById('export').onclick=async function(){if(!video.duration||exporting)return;var types=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];var mime=types.find(function(t){return MediaRecorder.isTypeSupported(t)});if(!mime){setStatus('此瀏覽器不支援影片匯出');return}exportCanvas=document.createElement('canvas');exportCanvas.width=canvas.width;exportCanvas.height=canvas.height;exportCtx=exportCanvas.getContext('2d');var chunks=[];oldTime=video.currentTime;oldLoop=video.loop;pause();video.loop=false;recorder=new MediaRecorder(exportCanvas.captureStream(30),{mimeType:mime});recorder.ondataavailable=function(e){if(e.data.size)chunks.push(e.data)};recorder.onstop=function(){prepareSave(new Blob(chunks,{type:mime}),'baseball-skeleton.'+(mime.includes('mp4')?'mp4':'webm'));video.loop=oldLoop;video.currentTime=oldTime;document.getElementById('export').disabled=false;setStatus('影片已製作完成，請選擇儲存方式')};document.getElementById('export').disabled=true;video.currentTime=0;await new Promise(function(resolve){video.addEventListener('seeked',resolve,{once:true})});exporting=true;drawExport();recorder.start();video.play().catch(function(e){finishExport();setStatus('匯出失敗：'+e.message)});setStatus('正在合成影片，請保持頁面開啟')};
   window.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='ArrowLeft')step(-1);if(e.key==='ArrowRight')step(1);if(e.code==='Space'){e.preventDefault();play.click()}});
 })();
 </script></body></html>
